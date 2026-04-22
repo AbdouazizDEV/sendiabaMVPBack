@@ -45,15 +45,16 @@ enum PaymentMethod {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  password      String
-  displayName   String
-  role          UserRole       @default(CUSTOMER)
-  status        UserStatus     @default(ACTIVE)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  profile       Profile?
+  id              String         @id @default(cuid())
+  referenceCode   String         @unique
+  email           String         @unique
+  password        String
+  displayName     String
+  role            UserRole       @default(CUSTOMER)
+  status          UserStatus     @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  profile         Profile?
   cart          Cart?
   orders        Order[]
   refreshTokens RefreshToken[]
@@ -150,6 +151,7 @@ model Subcategory {
 
 model Product {
   id            String                  @id @default(cuid())
+  referenceCode String                  @unique
   name          String
   description   String?
   price         Float

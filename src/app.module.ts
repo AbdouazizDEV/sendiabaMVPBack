@@ -7,6 +7,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BackofficeContentModule } from './modules/backoffice/content/backoffice-content.module';
 import { BackofficeDashboardModule } from './modules/backoffice/dashboard/backoffice-dashboard.module';
 import { BackofficeArtisansModule } from './modules/backoffice/artisans/backoffice-artisans.module';
+import { BackofficeUsersModule } from './modules/backoffice/users/backoffice-users.module';
+import { CartModule } from './modules/cart/cart.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { ProfileModule } from './modules/profile/profile.module';
+import { PublicContentModule } from './modules/public-content/public-content.module';
 import { HomeModule } from './modules/home/home.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
@@ -17,9 +22,14 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     AuthModule,
     HomeModule,
     NewsletterModule,
+    ProfileModule,
+    CartModule,
+    CatalogModule,
+    PublicContentModule,
     BackofficeArtisansModule,
     BackofficeDashboardModule,
     BackofficeContentModule,
+    BackofficeUsersModule,
   ],
   providers: [
     {

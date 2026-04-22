@@ -16,7 +16,11 @@ export class AuthPrismaRepository implements IAuthRepository {
   }
 
   async createUser(data: CreateUserData): Promise<User> {
-    return this.prisma.user.create({ data });
+    const count = await this.prisma.user.count();
+    const referenceCode = `USR-${5000 + count + 1}`;
+    return this.prisma.user.create({
+      data: { ...data, referenceCode },
+    });
   }
 
   async createRefreshToken(

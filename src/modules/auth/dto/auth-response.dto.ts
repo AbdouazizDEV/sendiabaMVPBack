@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SessionDto {
-  @ApiProperty({ example: 'usr-admin-001' })
+  @ApiProperty({ example: 'usr_4012' })
   id!: string;
 
   @ApiProperty({ example: 'DIOP Abdou Aziz' })

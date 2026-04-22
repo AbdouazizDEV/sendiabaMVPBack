@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { OrderStatus, PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -28,12 +28,46 @@ async function main(): Promise<void> {
   const password = await bcrypt.hash('Sendiaba2026!', 10);
   await prisma.user.create({
     data: {
+      referenceCode: 'USR-0001',
       email: 'admin@sendiaba.com',
       password,
       displayName: 'Admin Sendiaba',
       role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
     },
   });
+
+  const aminata = await prisma.user.create({
+    data: {
+      referenceCode: 'USR-4012',
+      email: 'aminata@sendiaba.com',
+      password,
+      displayName: 'Aminata Diallo',
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      createdAt: new Date('2026-02-03T12:00:00.000Z'),
+    },
+  });
+
+  await prisma.profile.create({
+    data: {
+      userId: aminata.id,
+      phone: '+221770000000',
+      city: 'Dakar',
+      country: 'Senegal',
+    },
+  });
+
+  await Promise.all(
+    Array.from({ length: 8 }).map(() =>
+      prisma.order.create({
+        data: {
+          userId: aminata.id,
+          status: OrderStatus.DELIVERED,
+        },
+      }),
+    ),
+  );
 
   const artisans = await Promise.all(
     [
@@ -45,11 +79,13 @@ async function main(): Promise<void> {
         email: 'ibrahima@sendiaba.com',
       },
       {
-        referenceCode: 'ART-3018',
-        fullName: 'Fatouma Diabate',
-        craft: 'Tisserande',
-        city: 'Bamako',
+        referenceCode: 'ART-2',
+        fullName: 'Fatouma Diabaté',
+        craft: "Tisserande d'Art",
+        city: 'Ségou',
         email: 'fatouma@sendiaba.com',
+        bio: "À travers son métier à tisser, Fatouma perpétue les motifs traditionnels du Mali.",
+        photoUrl: 'https://cdn.sendiaba.com/artisans/a2.png',
       },
       {
         referenceCode: 'ART-3021',
@@ -84,14 +120,87 @@ async function main(): Promise<void> {
     ].map((category) => prisma.category.create({ data: category })),
   );
 
-  await prisma.product.createMany({
-    data: Array.from({ length: 12 }).map((_, index) => ({
-      name: `Produit ${index + 1}`,
-      price: 25 + index * 5,
+  const productNames = [
+    'Sac Signature en Cuir',
+    'Pochette Soirée Wax',
+    'Panier Tressé Naturel',
+    'Coussin Brodé Terre',
+    'Bracelet Laiton Filigrane',
+    'Vase Grès Émaillé',
+    'Plaid Coton Bio',
+    'Boîte à Bijoux Bois',
+    'Tapis Laine Berbère',
+    'Service Thé Céramique',
+    'Lampe Raphia Tressé',
+    'Coffret Découverte Artisan',
+  ];
+
+  for (let index = 0; index < 12; index++) {
+    const code = `PRD-${index + 1}`;
+    const base = {
+      referenceCode: code,
+      name: productNames[index] ?? `Produit ${index + 1}`,
+      price: index === 0 ? 350 : 25 + index * 5,
+      imageUrl:
+        index === 0
+          ? 'https://cdn.sendiaba.com/products/p1.png'
+          : `https://cdn.sendiaba.com/products/p${index + 1}.png`,
       artisanId: artisans[index % artisans.length].id,
       categoryId: categories[index % categories.length].id,
       details: ['Fait main', 'Edition limitee'],
-    })),
+    };
+    const data =
+      index === 0
+        ? { ...base, description: 'Un sac intemporel fabrique a la main.' }
+        : index === 2
+          ? {
+              ...base,
+              name: 'Portefeuille Héritage',
+              tag: 'Nouveau',
+              href: '/produit/p3',
+            }
+          : index === 10
+            ? {
+                ...base,
+                name: 'Sculpture en Ébène',
+                tag: 'Édition Limitée',
+                href: '/produit/p11',
+              }
+            : base;
+    await prisma.product.create({ data });
+  }
+
+  const aminataProfile = await prisma.profile.findUniqueOrThrow({
+    where: { userId: aminata.id },
+  });
+  const fatouma = await prisma.artisan.findFirstOrThrow({
+    where: { referenceCode: 'ART-2' },
+  });
+  await prisma.profile.update({
+    where: { id: aminataProfile.id },
+    data: { favoriteArtisanId: fatouma.id },
+  });
+  for (const code of ['PRD-1', 'PRD-7', 'PRD-12'] as const) {
+    const prod = await prisma.product.findUniqueOrThrow({
+      where: { referenceCode: code },
+    });
+    await prisma.profileFavoriteProduct.create({
+      data: { profileId: aminataProfile.id, productId: prod.id },
+    });
+  }
+
+  const demoCart = await prisma.cart.create({
+    data: { userId: aminata.id },
+  });
+  const cartProduct = await prisma.product.findUniqueOrThrow({
+    where: { referenceCode: 'PRD-1' },
+  });
+  await prisma.cartItem.create({
+    data: {
+      cartId: demoCart.id,
+      productId: cartProduct.id,
+      quantity: 2,
+    },
   });
 
   await prisma.homepageHero.create({
@@ -175,10 +284,31 @@ async function main(): Promise<void> {
         overrideValue: null,
       },
       {
-        key: 'cart.empty.message',
+        key: 'cart.page.title',
         scope: 'cart',
-        label: 'Cart empty',
-        defaultValue: 'Votre panier est vide',
+        label: 'Panier - Titre',
+        defaultValue: 'Vos pieces selectionnees',
+        overrideValue: null,
+      },
+      {
+        key: 'cart.page.link',
+        scope: 'cart',
+        label: 'Panier - Lien continuer',
+        defaultValue: 'Continuer les achats',
+        overrideValue: null,
+      },
+      {
+        key: 'cart.empty.title',
+        scope: 'cart',
+        label: 'Panier vide - Titre',
+        defaultValue: 'Votre selection est vide',
+        overrideValue: null,
+      },
+      {
+        key: 'cart.empty.subtitle',
+        scope: 'cart',
+        label: 'Panier vide - Sous-titre',
+        defaultValue: 'Decouvrez nos pieces d exception...',
         overrideValue: null,
       },
       {

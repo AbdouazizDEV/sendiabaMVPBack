@@ -11,6 +11,7 @@ import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import type { SignOptions } from 'jsonwebtoken';
 import { ERROR_CODES } from '../../common/constants/error-codes.constant';
+import { publicUserId } from '../../common/utils/public-ids.util';
 import {
   AuthShowcaseResponseDto,
   AuthSuccessResponseDto,
@@ -187,28 +188,11 @@ export class AuthService {
 
   private toSessionDto(user: User): SessionDto {
     return {
-      id: this.toPublicUserId(user),
+      id: publicUserId(user),
       displayName: user.displayName,
       email: user.email,
       role: user.role === 'ADMIN' ? 'admin' : 'customer',
     };
-  }
-
-  /** Identifiant stable affiche cote client (ex: usr-admin-001, usr-4281). */
-  private toPublicUserId(user: User): string {
-    if (user.role === 'ADMIN') {
-      return 'usr-admin-001';
-    }
-    return `usr-${this.stableNumericSuffix(user.id)}`;
-  }
-
-  private stableNumericSuffix(userId: string): string {
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = (Math.imul(31, hash) + userId.charCodeAt(i)) | 0;
-    }
-    const n = (Math.abs(hash) % 9000) + 100;
-    return String(n);
   }
 
   private toSeconds(value: string): number {
