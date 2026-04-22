@@ -1,0 +1,311 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum ArtisanStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PREPARATION
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MOBILE_MONEY
+  CARD
+  BANK_TRANSFER
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  displayName   String
+  role          UserRole       @default(CUSTOMER)
+  status        UserStatus     @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  profile       Profile?
+  cart          Cart?
+  orders        Order[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Profile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone             String?
+  country           String?
+  city              String?
+  favoriteArtisanId String?
+  favoriteArtisan   Artisan? @relation("FavoriteArtisan", fields: [favoriteArtisanId], references: [id])
+  updatedAt         DateTime @updatedAt
+  favoriteProducts  ProfileFavoriteProduct[]
+
+  @@map("profiles")
+}
+
+model ProfileFavoriteProduct {
+  profileId String
+  productId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+
+  @@id([profileId, productId])
+  @@map("profile_favorite_products")
+}
+
+model Artisan {
+  id              String        @id @default(cuid())
+  referenceCode   String        @unique
+  fullName        String
+  craft           String
+  city            String
+  email           String        @unique
+  phone           String?
+  photoUrl        String?
+  bio             String?
+  quote           String?
+  heritage        String?
+  speciality      String?
+  yearsExperience Int?
+  status          ArtisanStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  products        Product[]
+  favoritedByUsers Profile[]    @relation("FavoriteArtisan")
+
+  @@map("artisans")
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  subtitle      String?
+  description   String?
+  imageUrl      String?
+  href          String?
+  sortOrder     Int           @default(0)
+  products      Product[]
+  subcategories Subcategory[]
+
+  @@map("categories")
+}
+
+model Subcategory {
+  id         String   @id @default(cuid())
+  slug       String
+  name       String
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  products   Product[]
+
+  @@unique([slug, categoryId])
+  @@map("subcategories")
+}
+
+model Product {
+  id            String                  @id @default(cuid())
+  name          String
+  description   String?
+  price         Float
+  imageUrl      String?
+  tag           String?
+  inStock       Boolean                 @default(true)
+  href          String?
+  artisanId     String
+  artisan       Artisan                 @relation(fields: [artisanId], references: [id])
+  categoryId    String
+  category      Category                @relation(fields: [categoryId], references: [id])
+  subcategoryId String?
+  subcategory   Subcategory?            @relation(fields: [subcategoryId], references: [id])
+  details       String[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  cartItems     CartItem[]
+  orderLines    OrderLine[]
+  favoritedBy   ProfileFavoriteProduct[]
+
+  @@map("products")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  cartId    String
+  productId String
+  quantity  Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@id([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  lines     OrderLine[]
+  checkout  OrderCheckout?
+
+  @@map("orders")
+}
+
+model OrderLine {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  productName  String
+  productImage String?
+  unitPrice    Float
+  quantity     Int
+
+  @@map("order_lines")
+}
+
+model OrderCheckout {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fullName      String
+  phone         String
+  country       String
+  city          String
+  district      String?
+  addressLine   String
+  postalCode    String?
+  notes         String?
+  paymentMethod PaymentMethod @default(MOBILE_MONEY)
+
+  @@map("order_checkouts")
+}
+
+model NewsletterSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String   @default("home_newsletter")
+  status    String   @default("subscribed")
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscriptions")
+}
+
+model ContentEntry {
+  key           String   @id
+  scope         String
+  label         String
+  defaultValue  String
+  overrideValue String?
+  updatedAt     DateTime @updatedAt
+  updatedById   String?
+
+  @@index([scope])
+  @@map("content_entries")
+}
+
+model HomepageHero {
+  id                 String @id @default(cuid())
+  badge              String
+  title              String
+  cta                String
+  backgroundImageUrl String
+
+  @@map("homepage_hero")
+}
+
+model BrandTicker {
+  id    String   @id @default(cuid())
+  items String[]
+
+  @@map("brand_ticker")
+}
+
+model PromoBanner {
+  id                 String   @id @default(cuid())
+  badge              String
+  title              String
+  subtitle           String?
+  cta                String
+  targetDate         DateTime
+  remainingPieces    Int
+  backgroundImageUrl String
+  href               String
+
+  @@map("promo_banners")
+}
+
+model Stats {
+  id     String @id @default(cuid())
+  value  Int
+  suffix String
+  label  String
+  order  Int    @default(0)
+
+  @@map("stats")
+}
+
+model PressItem {
+  id    String @id @default(cuid())
+  name  String
+  order Int    @default(0)
+
+  @@map("press_items")
+}
