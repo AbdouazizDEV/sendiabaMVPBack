@@ -1,12 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
 export class RevenueTrendQueryDto {
   @ApiProperty({ example: '9m', description: 'Periode (3m, 6m, 9m, 12m)' })
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value === undefined || value === '' ? '9m' : String(value),
+  )
   @IsString()
   @IsIn(['3m', '6m', '9m', '12m'])
-  period: string = '9m';
+  period!: string;
 }
 
 export class DashboardKpisDto {
