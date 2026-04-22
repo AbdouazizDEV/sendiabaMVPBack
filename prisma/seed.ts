@@ -138,11 +138,63 @@ async function main(): Promise<void> {
 
   await prisma.contentEntry.createMany({
     data: [
-      { key: 'home.manifesto.title', scope: 'home', label: 'Manifesto title', defaultValue: 'Le savoir-faire au coeur' },
-      { key: 'artisans.header.title', scope: 'artisans', label: 'Artisans title', defaultValue: 'Nos artisans' },
-      { key: 'cart.empty.message', scope: 'cart', label: 'Cart empty', defaultValue: 'Votre panier est vide' },
-      { key: 'checkout.title', scope: 'checkout', label: 'Checkout title', defaultValue: 'Finaliser ma commande' },
-      { key: 'category.subtitle', scope: 'category', label: 'Category subtitle', defaultValue: 'Selection artisanale' },
+      {
+        key: 'home.hero.title',
+        scope: 'home',
+        label: 'Hero - Titre',
+        defaultValue: "L'ame de l'artisanat africain.",
+        overrideValue:
+          'Le luxe artisanal africain signe par ses createurs.',
+      },
+      {
+        key: 'home.newsletter.title',
+        scope: 'home',
+        label: 'Newsletter - Titre',
+        defaultValue: "Rejoignez l'Atelier",
+        overrideValue: null,
+      },
+      {
+        key: 'home.newsletter.subtitle',
+        scope: 'home',
+        label: 'Newsletter - Sous-titre',
+        defaultValue: 'Inscrivez-vous pour decouvrir en avant-premiere...',
+        overrideValue: null,
+      },
+      {
+        key: 'home.manifesto.title',
+        scope: 'home',
+        label: 'Manifesto title',
+        defaultValue: 'Le savoir-faire au coeur',
+        overrideValue: null,
+      },
+      {
+        key: 'artisans.header.title',
+        scope: 'artisans',
+        label: 'Artisans title',
+        defaultValue: 'Nos artisans',
+        overrideValue: null,
+      },
+      {
+        key: 'cart.empty.message',
+        scope: 'cart',
+        label: 'Cart empty',
+        defaultValue: 'Votre panier est vide',
+        overrideValue: null,
+      },
+      {
+        key: 'checkout.title',
+        scope: 'checkout',
+        label: 'Checkout title',
+        defaultValue: 'Finaliser ma commande',
+        overrideValue: null,
+      },
+      {
+        key: 'category.subtitle',
+        scope: 'category',
+        label: 'Category subtitle',
+        defaultValue: 'Selection artisanale',
+        overrideValue: null,
+      },
     ],
   });
 }
