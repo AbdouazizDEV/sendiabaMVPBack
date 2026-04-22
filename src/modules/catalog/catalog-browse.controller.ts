@@ -1,11 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator';
 import {
   NewArrivalsQueryDto,
   NewArrivalsResponseDto,
@@ -13,7 +13,7 @@ import {
 import { CatalogService } from './catalog.service';
 
 @ApiTags('Catalog')
-@ApiBearerAuth()
+@Public()
 @Controller('catalog')
 export class CatalogBrowseController {
   constructor(private readonly catalogService: CatalogService) {}

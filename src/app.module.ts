@@ -10,7 +10,9 @@ import { BackofficeArtisansModule } from './modules/backoffice/artisans/backoffi
 import { BackofficeUsersModule } from './modules/backoffice/users/backoffice-users.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { CollectionsModule } from './modules/collections/collections.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { PublicContentModule } from './modules/public-content/public-content.module';
 import { HomeModule } from './modules/home/home.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
@@ -25,6 +27,8 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     ProfileModule,
     CartModule,
     CatalogModule,
+    CollectionsModule,
+    OrdersModule,
     PublicContentModule,
     BackofficeArtisansModule,
     BackofficeDashboardModule,

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -10,6 +10,8 @@ import {
 import type { User } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
+  AddCartItemDto,
+  CartAddItemSuccessDto,
   CartDeleteSuccessDto,
   CartPatchQuantityDto,
   CartPatchSuccessDto,
@@ -32,6 +34,20 @@ export class CartController {
   @ApiOkResponse({ type: CartResponseDto })
   async getCart(@CurrentUser() user: User): Promise<CartResponseDto> {
     return this.cartService.getCart(user);
+  }
+
+  @Post('items')
+  @ApiOperation({
+    summary: 'Ajouter un produit au panier',
+    description: 'ajoute la quantité demandée à la ligne produit',
+  })
+  @ApiBody({ type: AddCartItemDto })
+  @ApiOkResponse({ type: CartAddItemSuccessDto })
+  async addItem(
+    @CurrentUser() user: User,
+    @Body() dto: AddCartItemDto,
+  ): Promise<CartAddItemSuccessDto> {
+    return this.cartService.addItem(user, dto.productId, dto.quantity);
   }
 
   @Patch('items/:productId')

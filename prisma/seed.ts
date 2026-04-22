@@ -277,6 +277,27 @@ async function main(): Promise<void> {
         overrideValue: null,
       },
       {
+        key: 'artisans.hero.badge',
+        scope: 'artisans',
+        label: 'Artisans hero badge',
+        defaultValue: 'Nos Maitres Artisans',
+        overrideValue: null,
+      },
+      {
+        key: 'artisans.hero.title',
+        scope: 'artisans',
+        label: 'Artisans hero title',
+        defaultValue: "Les Mains de l'Excellence",
+        overrideValue: null,
+      },
+      {
+        key: 'artisans.hero.subtitle',
+        scope: 'artisans',
+        label: 'Artisans hero subtitle',
+        defaultValue: "Le vrai luxe n'est pas silencieux...",
+        overrideValue: null,
+      },
+      {
         key: 'artisans.header.title',
         scope: 'artisans',
         label: 'Artisans title',
@@ -312,10 +333,47 @@ async function main(): Promise<void> {
         overrideValue: null,
       },
       {
+        key: 'checkout.hero.badge',
+        scope: 'checkout',
+        label: 'Checkout hero badge',
+        defaultValue: 'Paiement securise',
+        overrideValue: null,
+      },
+      {
+        key: 'checkout.hero.title',
+        scope: 'checkout',
+        label: 'Checkout hero title',
+        defaultValue: 'Finalisez votre commande en toute serenite',
+        overrideValue: null,
+      },
+      {
+        key: 'checkout.hero.subtitle',
+        scope: 'checkout',
+        label: 'Checkout hero subtitle',
+        defaultValue:
+          'Renseignez vos informations de livraison et choisissez votre moyen de paiement...',
+        overrideValue: null,
+      },
+      {
         key: 'checkout.title',
         scope: 'checkout',
         label: 'Checkout title',
         defaultValue: 'Finaliser ma commande',
+        overrideValue: null,
+      },
+      {
+        key: 'category.empty.title',
+        scope: 'category',
+        label: 'Category empty title',
+        defaultValue: 'Aucune creation ne correspond a vos criteres.',
+        overrideValue: null,
+      },
+      {
+        key: 'category.empty.subtitle',
+        scope: 'category',
+        label: 'Category empty subtitle',
+        defaultValue:
+          'Essayez de modifier vos filtres pour voir plus de resultats.',
         overrideValue: null,
       },
       {

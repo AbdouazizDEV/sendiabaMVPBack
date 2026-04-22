@@ -10,6 +10,7 @@ import {
   publicProductId,
 } from '../../common/utils/public-ids.util';
 import type {
+  CartAddItemSuccessDto,
   CartDeleteSuccessDto,
   CartPatchSuccessDto,
   CartResponseDto,
@@ -77,6 +78,37 @@ export class CartService {
     };
   }
 
+  async addItem(
+    user: User,
+    productPublicId: string,
+    quantity: number,
+  ): Promise<CartAddItemSuccessDto> {
+    const product = await this.resolveProductByPublicId(productPublicId);
+    const cart = await this.loadOrCreateCart(user.id);
+    const existing = await this.prisma.cartItem.findUnique({
+      where: { cartId_productId: { cartId: cart.id, productId: product.id } },
+    });
+    const nextQty = (existing?.quantity ?? 0) + quantity;
+
+    await this.prisma.cartItem.upsert({
+      where: { cartId_productId: { cartId: cart.id, productId: product.id } },
+      create: { cartId: cart.id, productId: product.id, quantity: nextQty },
+      update: { quantity: nextQty },
+    });
+
+    const refreshed = await this.reloadCart(cart.id);
+    return {
+      success: true,
+      cart: {
+        items: refreshed.items.map((i) => ({
+          productId: publicProductId(i.product),
+          quantity: i.quantity,
+        })),
+        itemCount: refreshed.items.reduce((sum, i) => sum + i.quantity, 0),
+      },
+    };
+  }
+
   async removeItem(
     user: User,
     productPublicId: string,
@@ -140,7 +172,13 @@ export class CartService {
 
   private computeTotals(
     items: CartLoaded['items'],
-  ): { itemCount: number; subtotal: number; shipping: number; total: number } {
+  ): {
+    itemCount: number;
+    subtotal: number;
+    shipping: number;
+    shippingFee: number;
+    total: number;
+  } {
     const itemCount = items.reduce((s, i) => s + i.quantity, 0);
     const subtotal = items.reduce(
       (s, i) => s + i.quantity * i.product.price,
@@ -148,7 +186,7 @@ export class CartService {
     );
     const shipping = itemCount > 0 ? SHIPPING_FLAT_EUR : 0;
     const total = subtotal + shipping;
-    return { itemCount, subtotal, shipping, total };
+    return { itemCount, subtotal, shipping, shippingFee: shipping, total };
   }
 
   private toFullCartDto(cart: CartLoaded): CartResponseDto {

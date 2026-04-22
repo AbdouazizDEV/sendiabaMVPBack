@@ -1,5 +1,6 @@
 const CITY_COUNTRY: Record<string, string> = {
   Dakar: 'Sénégal',
+  'Ngaye Mékhé': 'Sénégal',
   'Saint-Louis': 'Sénégal',
   Thiès: 'Sénégal',
   Bamako: 'Mali',

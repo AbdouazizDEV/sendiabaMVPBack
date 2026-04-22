@@ -41,3 +41,17 @@ export function parseProductPublicId(id: string): string | null {
   }
   return `PRD-${num}`;
 }
+
+/** Ex: cuid -> cmd_x8a91k2p (stable). */
+export function publicOrderId(order: { id: string }): string {
+  return `cmd_${order.id.slice(-8)}`;
+}
+
+/** Ex: cmd_x8a91k2p -> x8a91k2p */
+export function parsePublicOrderId(orderId: string): string | null {
+  const match = /^cmd_([a-z0-9]{4,32})$/i.exec(orderId.trim());
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
