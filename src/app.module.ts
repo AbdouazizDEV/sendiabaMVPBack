@@ -17,6 +17,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PublicContentModule } from './modules/public-content/public-content.module';
 import { HomeModule } from './modules/home/home.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     BackofficeContentModule,
     BackofficeUsersModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

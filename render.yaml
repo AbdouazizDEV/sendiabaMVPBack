@@ -1,0 +1,50 @@
+# Blueprint Render : https://render.com/docs/blueprint-spec
+# Depuis le dashboard : New > Blueprint > connecter ce depot, puis ajuster region / plan.
+#
+# Variables a renseigner dans Render (Environment) si non presentes ici :
+# DATABASE_URL, JWT_*, SMTP_*, CLOUDINARY_URL, FRONTEND_HOME_URL, CORS_ORIGINS, etc.
+# Voir .env.example
+
+services:
+  - type: web
+    name: sendiaba-mvp-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: main
+    buildCommand: corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm exec prisma migrate deploy && pnpm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: api/v1
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 3600s
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_HOME_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
