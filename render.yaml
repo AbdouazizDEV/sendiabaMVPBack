@@ -1,6 +1,9 @@
 # Blueprint Render : https://render.com/docs/blueprint-spec
 # Depuis le dashboard : New > Blueprint > connecter ce depot, puis ajuster region / plan.
 #
+# Ne pas utiliser `corepack enable` sur Render : le FS est en lecture seule sous /usr/bin (EROFS).
+# pnpm est installe via le script officiel dans $HOME, puis le demarrage utilise npx (node_modules local).
+#
 # Variables a renseigner dans Render (Environment) si non presentes ici :
 # DATABASE_URL, JWT_*, SMTP_*, CLOUDINARY_URL, FRONTEND_HOME_URL, CORS_ORIGINS, etc.
 # Voir .env.example
@@ -12,8 +15,8 @@ services:
     region: frankfurt
     plan: free
     branch: main
-    buildCommand: corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm install --frozen-lockfile && pnpm run build
-    startCommand: pnpm exec prisma migrate deploy && pnpm run start:prod
+    buildCommand: curl -fsSL https://get.pnpm.io/install.sh | PNPM_VERSION=10.33.0 sh - && export PNPM_HOME="$HOME/.local/share/pnpm" && export PATH="$PNPM_HOME:$PATH" && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_VERSION
