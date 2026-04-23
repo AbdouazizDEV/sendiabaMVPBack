@@ -23,8 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
@@ -113,13 +112,8 @@ export class BackofficeArtisansController {
   @ApiOkResponse({ type: UploadArtisanPhotoResponseDto })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads/artisans',
-        filename: (_req, file, callback) => {
-          const uniqueName = `${Date.now()}${extname(file.originalname)}`;
-          callback(null, uniqueName);
-        },
-      }),
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   async uploadPhoto(

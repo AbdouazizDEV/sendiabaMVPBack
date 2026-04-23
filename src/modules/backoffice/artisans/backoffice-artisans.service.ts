@@ -4,9 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Artisan, ArtisanStatus, Prisma } from '@prisma/client';
-import { extname } from 'path';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import {
   BACKOFFICE_ARTISANS_REPOSITORY,
   type IBackofficeArtisansRepository,
@@ -26,7 +25,7 @@ export class BackofficeArtisansService {
   constructor(
     @Inject(BACKOFFICE_ARTISANS_REPOSITORY)
     private readonly artisansRepository: IBackofficeArtisansRepository,
-    private readonly configService: ConfigService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async list(
@@ -90,17 +89,22 @@ export class BackofficeArtisansService {
     file: Express.Multer.File,
   ): Promise<UploadArtisanPhotoResponseDto> {
     const artisan = await this.resolveArtisan(artisanIdentifier);
-    const baseUrl = this.configService.get<string>(
-      'CDN_BASE_URL',
-      'https://cdn.sendiaba.com',
-    );
-    const ext = extname(file.originalname) || '.jpg';
+    const buffer = file?.buffer;
+    if (!buffer?.length) {
+      throw new BadRequestException({
+        code: 'EMPTY_FILE',
+        message: 'Aucun fichier image recu.',
+      });
+    }
     const dateStr = new Date().toISOString().slice(0, 10);
-    const photoUrl = `${baseUrl}/artisans/${artisan.referenceCode}/profile-${dateStr}${ext}`;
-    await this.artisansRepository.updatePhoto(artisan.id, photoUrl);
+    const { secureUrl } = await this.cloudinary.uploadImageBuffer(buffer, {
+      folder: `sendiaba/artisans/${artisan.referenceCode}`,
+      publicId: `profile-${dateStr}-${Date.now()}`,
+    });
+    await this.artisansRepository.updatePhoto(artisan.id, secureUrl);
     return {
       success: true,
-      data: { photoUrl },
+      data: { photoUrl: secureUrl },
     };
   }
 

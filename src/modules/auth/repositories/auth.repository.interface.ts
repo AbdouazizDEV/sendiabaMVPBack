@@ -4,6 +4,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   displayName: string;
+  phone: string;
 }
 
 export interface IAuthRepository {
@@ -18,12 +19,12 @@ export interface IAuthRepository {
   findRefreshToken(token: string): Promise<RefreshToken | null>;
   deleteRefreshToken(token: string): Promise<void>;
   findShowcaseProduct(): Promise<{
-    id: string;
+    referenceCode: string;
     name: string;
     price: number;
     imageUrl: string | null;
     artisan: {
-      id: string;
+      referenceCode: string;
       fullName: string;
     };
   } | null>;

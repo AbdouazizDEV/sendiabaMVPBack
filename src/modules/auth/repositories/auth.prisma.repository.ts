@@ -19,7 +19,17 @@ export class AuthPrismaRepository implements IAuthRepository {
     const count = await this.prisma.user.count();
     const referenceCode = `USR-${5000 + count + 1}`;
     return this.prisma.user.create({
-      data: { ...data, referenceCode },
+      data: {
+        email: data.email,
+        password: data.password,
+        displayName: data.displayName,
+        referenceCode,
+        profile: {
+          create: {
+            phone: data.phone,
+          },
+        },
+      },
     });
   }
 
@@ -40,22 +50,22 @@ export class AuthPrismaRepository implements IAuthRepository {
   }
 
   async findShowcaseProduct(): Promise<{
-    id: string;
+    referenceCode: string;
     name: string;
     price: number;
     imageUrl: string | null;
-    artisan: { id: string; fullName: string };
+    artisan: { referenceCode: string; fullName: string };
   } | null> {
     return this.prisma.product.findFirst({
       orderBy: { createdAt: 'desc' },
       select: {
-        id: true,
+        referenceCode: true,
         name: true,
         price: true,
         imageUrl: true,
         artisan: {
           select: {
-            id: true,
+            referenceCode: true,
             fullName: true,
           },
         },

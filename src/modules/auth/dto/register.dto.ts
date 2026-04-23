@@ -15,4 +15,9 @@ export class RegisterDto {
   @IsString()
   @MinLength(2)
   displayName!: string;
+
+  @ApiProperty({ example: '+221770000000' })
+  @IsString()
+  @MinLength(8)
+  phone!: string;
 }

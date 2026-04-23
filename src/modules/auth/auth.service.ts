@@ -11,7 +11,11 @@ import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import type { SignOptions } from 'jsonwebtoken';
 import { ERROR_CODES } from '../../common/constants/error-codes.constant';
-import { publicUserId } from '../../common/utils/public-ids.util';
+import {
+  publicArtisanId,
+  publicProductId,
+  publicUserId,
+} from '../../common/utils/public-ids.util';
 import {
   AuthShowcaseResponseDto,
   AuthSuccessResponseDto,
@@ -24,6 +28,7 @@ import {
   AUTH_REPOSITORY,
   type IAuthRepository,
 } from './repositories/auth.repository.interface';
+import { AuthMailService } from './services/auth-mail.service';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +37,7 @@ export class AuthService {
     private readonly authRepository: IAuthRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly authMailService: AuthMailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthSuccessResponseDto> {
@@ -48,6 +54,38 @@ export class AuthService {
       email: dto.email,
       password,
       displayName: dto.displayName,
+      phone: dto.phone,
+    });
+
+    const emailValidationToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        type: 'email_validation',
+      },
+      {
+        secret: this.configService.get<string>(
+          'JWT_EMAIL_SECRET',
+          this.configService.get<string>('JWT_ACCESS_SECRET', ''),
+        ),
+        expiresIn: this.configService.get<string>(
+          'JWT_EMAIL_EXPIRES_IN',
+          '24h',
+        ) as SignOptions['expiresIn'],
+      },
+    );
+
+    const frontendHome = this.configService.get<string>(
+      'FRONTEND_HOME_URL',
+      'https://sendiaba-mvp-front.vercel.app/',
+    );
+    const homeUrl = frontendHome.endsWith('/') ? frontendHome : `${frontendHome}/`;
+    const verificationLink = `${homeUrl}?token=${encodeURIComponent(emailValidationToken)}`;
+
+    await this.authMailService.sendWelcomeValidationMail({
+      to: user.email,
+      displayName: user.displayName,
+      verificationLink,
     });
 
     return this.buildAuthResponse(user);
@@ -134,12 +172,12 @@ export class AuthService {
       headline: 'Le luxe artisanal africain, signe par son createur.',
       subtitle: 'Connectez-vous pour sauvegarder vos selections...',
       featuredProduct: {
-        id: product.id,
+        id: publicProductId(product),
         name: product.name,
         price: product.price,
         imageUrl: product.imageUrl ?? '',
         artisan: {
-          id: product.artisan.id,
+          id: publicArtisanId(product.artisan),
           name: product.artisan.fullName,
         },
       },

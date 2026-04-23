@@ -42,8 +42,9 @@ export class BackofficeDashboardService {
     };
   }
 
-  getRevenueTrend(period: string): RevenueTrendResponseDto {
-    const months = this.parsePeriodMonths(period);
+  getRevenueTrend(period?: string): RevenueTrendResponseDto {
+    const resolvedPeriod = period && period.trim() ? period : '9m';
+    const months = this.parsePeriodMonths(resolvedPeriod);
     const fullSeries: RevenueTrendResponseDto['points'] = [
       { month: 'Jan', value: 42000 },
       { month: 'Fev', value: 51000 },
@@ -61,7 +62,7 @@ export class BackofficeDashboardService {
         : fullSeries.slice(fullSeries.length - months);
 
     return {
-      period,
+      period: resolvedPeriod,
       growthVsPreviousPeriod: 22.4,
       points,
     };
@@ -96,8 +97,9 @@ export class BackofficeDashboardService {
     };
   }
 
-  private parsePeriodMonths(period: string): number {
-    const match = /^(\d+)m$/.exec(period.trim());
+  private parsePeriodMonths(period?: string): number {
+    const safePeriod = period?.trim() ?? '';
+    const match = /^(\d+)m$/.exec(safePeriod);
     if (!match) {
       return 9;
     }

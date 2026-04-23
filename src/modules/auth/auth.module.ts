@@ -10,6 +10,7 @@ import {
   AUTH_REPOSITORY,
 } from './repositories/auth.repository.interface';
 import { AuthPrismaRepository } from './repositories/auth.prisma.repository';
+import { AuthMailService } from './services/auth-mail.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuthPrismaRepository } from './repositories/auth.prisma.repository';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthMailService,
     JwtStrategy,
     {
       provide: AUTH_REPOSITORY,
