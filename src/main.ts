@@ -9,10 +9,27 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const configuredOrigins = (config.get<string>('CORS_ORIGINS', '') || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const corsOrigins =
+    configuredOrigins.length > 0
+      ? configuredOrigins
+      : ['http://localhost:3000', 'http://localhost:5173'];
 
   app.setGlobalPrefix(config.get<string>('API_PREFIX', 'api/v1'));
   app.enableCors({
-    origin: config.get<string>('CORS_ORIGINS', '').split(','),
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+    },
     credentials: true,
   });
   app.use(cookieParser());
