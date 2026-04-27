@@ -10,8 +10,8 @@ export class SessionDto {
   @ApiProperty({ example: 'abdouazizdiop583@gmail.com' })
   email!: string;
 
-  @ApiProperty({ example: 'customer', enum: ['customer', 'admin'] })
-  role!: 'customer' | 'admin';
+  @ApiProperty({ example: 'customer', enum: ['customer', 'artisan', 'admin'] })
+  role!: 'customer' | 'artisan' | 'admin';
 }
 
 export class TokenDto {

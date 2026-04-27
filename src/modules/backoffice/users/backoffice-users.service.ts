@@ -14,6 +14,7 @@ import {
   BackofficeUserDto,
   BackofficeUsersListResponseDto,
   BackofficeUsersQueryDto,
+  UpdateBackofficeUserRoleResponseDto,
 } from './dto/backoffice-users.dto';
 
 @Injectable()
@@ -63,6 +64,31 @@ export class BackofficeUsersService {
     return this.toDto(row);
   }
 
+  async promoteToArtisan(userId: string): Promise<UpdateBackofficeUserRoleResponseDto> {
+    const row = await this.usersRepository.findByIdentifier(userId);
+    if (!row) {
+      throw new NotFoundException({
+        code: 'USER_NOT_FOUND',
+        message: 'Utilisateur introuvable.',
+      });
+    }
+    if (row.role !== UserRole.CUSTOMER) {
+      throw new BadRequestException({
+        code: 'ROLE_TRANSITION_NOT_ALLOWED',
+        message: 'Seuls les comptes CUSTOMER peuvent etre promus ARTISAN.',
+      });
+    }
+    const updated = await this.usersRepository.updateRole(row.id, UserRole.ARTISAN);
+    return {
+      success: true,
+      data: {
+        id: updated.referenceCode,
+        role: this.toRoleLabel(updated.role),
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    };
+  }
+
   private toDto(row: BackofficeUserListRow): BackofficeUserDto {
     return {
       id: row.referenceCode,
@@ -87,6 +113,8 @@ export class BackofficeUsersService {
         return UserRole.CUSTOMER;
       case 'admin':
         return UserRole.ADMIN;
+      case 'artisan':
+        return UserRole.ARTISAN;
       default:
         throw new BadRequestException({
           code: 'INVALID_ROLE',
@@ -124,6 +152,8 @@ export class BackofficeUsersService {
         return 'Admin';
       case UserRole.CUSTOMER:
         return 'Client';
+      case UserRole.ARTISAN:
+        return 'Artisan';
     }
   }
 
