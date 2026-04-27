@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../../../database/prisma.service';
 import type {
   BackofficeUserListRow,
@@ -15,6 +15,7 @@ const listSelect = {
   role: true,
   status: true,
   createdAt: true,
+  updatedAt: true,
   profile: { select: { city: true } },
   _count: { select: { orders: true } },
 } satisfies Prisma.UserSelect;
@@ -48,6 +49,15 @@ export class BackofficeUsersPrismaRepository implements IBackofficeUsersReposito
       select: listSelect,
     });
     return row as BackofficeUserListRow | null;
+  }
+
+  async updateRole(id: string, role: UserRole): Promise<BackofficeUserListRow> {
+    const row = await this.prisma.user.update({
+      where: { id },
+      data: { role },
+      select: listSelect,
+    });
+    return row as BackofficeUserListRow;
   }
 
   private buildWhere(

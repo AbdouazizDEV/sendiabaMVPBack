@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -14,6 +15,8 @@ import {
   BackofficeUserDto,
   BackofficeUsersListResponseDto,
   BackofficeUsersQueryDto,
+  UpdateBackofficeUserRoleDto,
+  UpdateBackofficeUserRoleResponseDto,
 } from './dto/backoffice-users.dto';
 import { BackofficeUsersService } from './backoffice-users.service';
 
@@ -53,5 +56,21 @@ export class BackofficeUsersController {
   @ApiOkResponse({ type: BackofficeUserDto })
   async findOne(@Param('userId') userId: string): Promise<BackofficeUserDto> {
     return this.backofficeUsersService.findOne(userId);
+  }
+
+  @Patch(':userId/role')
+  @ApiParam({ name: 'userId', example: 'USR-4012' })
+  @ApiOperation({
+    summary: "Promouvoir un utilisateur en artisan",
+    description:
+      "met a jour le role d'un utilisateur de CUSTOMER vers ARTISAN (action backoffice admin)",
+  })
+  @ApiBody({ type: UpdateBackofficeUserRoleDto })
+  @ApiOkResponse({ type: UpdateBackofficeUserRoleResponseDto })
+  async updateRole(
+    @Param('userId') userId: string,
+    @Body() _dto: UpdateBackofficeUserRoleDto,
+  ): Promise<UpdateBackofficeUserRoleResponseDto> {
+    return this.backofficeUsersService.promoteToArtisan(userId);
   }
 }

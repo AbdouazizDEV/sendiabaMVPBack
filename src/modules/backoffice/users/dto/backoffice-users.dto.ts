@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class BackofficeUsersQueryDto {
   @ApiProperty({ required: false, example: 'diallo' })
@@ -55,5 +55,28 @@ export class BackofficeUsersListResponseDto {
     limit: number;
     total: number;
     totalPages: number;
+  };
+}
+
+export class UpdateBackofficeUserRoleDto {
+  @ApiProperty({ example: 'ARTISAN', enum: ['ARTISAN'] })
+  @IsString()
+  @IsIn(['ARTISAN'])
+  role!: 'ARTISAN';
+}
+
+export class UpdateBackofficeUserRoleResponseDto {
+  @ApiProperty({ example: true }) success!: boolean;
+  @ApiProperty({
+    example: {
+      id: 'USR-4012',
+      role: 'Artisan',
+      updatedAt: '2026-04-26T13:45:00.000Z',
+    },
+  })
+  data!: {
+    id: string;
+    role: string;
+    updatedAt: string;
   };
 }

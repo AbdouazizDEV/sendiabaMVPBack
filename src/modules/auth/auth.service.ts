@@ -225,11 +225,16 @@ export class AuthService {
   }
 
   private toSessionDto(user: User): SessionDto {
+    const roleMap: Record<User['role'], SessionDto['role']> = {
+      ADMIN: 'admin',
+      ARTISAN: 'artisan',
+      CUSTOMER: 'customer',
+    };
     return {
       id: publicUserId(user),
       displayName: user.displayName,
       email: user.email,
-      role: user.role === 'ADMIN' ? 'admin' : 'customer',
+      role: roleMap[user.role],
     };
   }
 

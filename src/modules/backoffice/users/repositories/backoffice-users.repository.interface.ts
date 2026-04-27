@@ -18,6 +18,7 @@ export interface BackofficeUserListRow {
   role: UserRole;
   status: UserStatus;
   createdAt: Date;
+  updatedAt: Date;
   profile: { city: string | null } | null;
   _count: { orders: number };
 }
@@ -26,4 +27,5 @@ export interface IBackofficeUsersRepository {
   findMany(filters: UserListFilters): Promise<BackofficeUserListRow[]>;
   count(filters: Omit<UserListFilters, 'page' | 'limit'>): Promise<number>;
   findByIdentifier(identifier: string): Promise<BackofficeUserListRow | null>;
+  updateRole(id: string, role: UserRole): Promise<BackofficeUserListRow>;
 }
