@@ -56,11 +56,7 @@ export class ArtisanProductsService {
     await this.assertArtisan(user.id);
     const category = await this.prisma.category.findUnique({ where: { slug: dto.categorySlug } });
     if (!category) throw new BadRequestException({ code: 'CATEGORY_NOT_FOUND', message: 'Categorie introuvable.' });
-    const subcategory = dto.subcategorySlug
-      ? await this.prisma.subcategory.findUnique({
-          where: { slug_categoryId: { slug: dto.subcategorySlug, categoryId: category.id } },
-        })
-      : null;
+    const subcategory = await this.resolveSubcategory(category.id, dto.subcategorySlug);
     const imageUrl = await this.uploadIfAny(user.referenceCode, file);
     const count = await this.prisma.product.count();
     const created = await this.prisma.product.create({
@@ -74,7 +70,7 @@ export class ArtisanProductsService {
         price: dto.price,
         tag: dto.tag,
         inStock: dto.inStock ?? true,
-        details: dto.details ?? [],
+        details: this.normalizeDetails(dto.details),
         imageUrl,
       },
       include: { category: true, subcategory: true },
@@ -98,11 +94,7 @@ export class ArtisanProductsService {
     const product = await this.findOwnedProduct(user.id, productId);
     const category = await this.prisma.category.findUnique({ where: { slug: dto.categorySlug } });
     if (!category) throw new BadRequestException({ code: 'CATEGORY_NOT_FOUND', message: 'Categorie introuvable.' });
-    const subcategory = dto.subcategorySlug
-      ? await this.prisma.subcategory.findUnique({
-          where: { slug_categoryId: { slug: dto.subcategorySlug, categoryId: category.id } },
-        })
-      : null;
+    const subcategory = await this.resolveSubcategory(category.id, dto.subcategorySlug);
     const imageUrl = (await this.uploadIfAny(user.referenceCode, file)) ?? product.imageUrl;
     const updated = await this.prisma.product.update({
       where: { id: product.id },
@@ -112,7 +104,7 @@ export class ArtisanProductsService {
         price: dto.price,
         tag: dto.tag,
         inStock: dto.inStock ?? product.inStock,
-        details: dto.details ?? product.details,
+        details: this.normalizeDetails(dto.details, product.details),
         categoryId: category.id,
         subcategoryId: subcategory?.id,
         imageUrl,
@@ -179,5 +171,52 @@ export class ArtisanProductsService {
       subcategory: p.subcategory?.slug ?? null,
       tag: p.tag ?? null,
     };
+  }
+
+  private async resolveSubcategory(
+    categoryId: string,
+    subcategorySlug?: string,
+  ) {
+    if (!subcategorySlug?.trim()) {
+      return null;
+    }
+    const subcategory = await this.prisma.subcategory.findFirst({
+      where: {
+        categoryId,
+        OR: [
+          { slug: subcategorySlug.trim() },
+          { name: { equals: subcategorySlug.trim(), mode: 'insensitive' } },
+        ],
+      },
+    });
+    if (!subcategory) {
+      throw new BadRequestException({
+        code: 'SUBCATEGORY_NOT_FOUND',
+        message: 'Sous-categorie introuvable pour la categorie selectionnee.',
+      });
+    }
+    return subcategory;
+  }
+
+  private normalizeDetails(
+    raw: unknown,
+    fallback: string[] = [],
+  ): string[] {
+    if (Array.isArray(raw)) {
+      return raw
+        .map((v) => (typeof v === 'string' ? v.trim() : ''))
+        .filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+      const value = raw.trim();
+      if (!value) {
+        return [];
+      }
+      return value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+    return fallback;
   }
 }
