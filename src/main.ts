@@ -23,11 +23,22 @@ async function bootstrap(): Promise<void> {
           'http://localhost:3001',
           'http://localhost:5173',
         ];
-  if (config.get<string>('NODE_ENV') !== 'production') {
-    const selfOrigin = `http://localhost:${port}`;
-    if (!corsOrigins.includes(selfOrigin)) {
-      corsOrigins.push(selfOrigin);
+
+  const addOrigin = (value: string): void => {
+    const normalized = value.replace(/\/$/, '');
+    if (normalized && !corsOrigins.includes(normalized)) {
+      corsOrigins.push(normalized);
     }
+  };
+
+  // Render injecte l URL publique du service (Swagger « Try it out » = même origine).
+  addOrigin(config.get<string>('RENDER_EXTERNAL_URL', ''));
+
+  // Optionnel si l API est derrière un domaine personnalisé (non couvert par Render).
+  addOrigin(config.get<string>('API_PUBLIC_URL', ''));
+
+  if (config.get<string>('NODE_ENV') !== 'production') {
+    addOrigin(`http://localhost:${port}`);
   }
 
   app.setGlobalPrefix(config.get<string>('API_PREFIX', 'api/v1'));
@@ -40,7 +51,8 @@ async function bootstrap(): Promise<void> {
         callback(null, true);
         return;
       }
-      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+      // Ne pas throw : sinon express renvoie 500 au lieu d un refus CORS propre.
+      callback(null, false);
     },
     credentials: true,
   });

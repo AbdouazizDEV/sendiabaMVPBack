@@ -6,6 +6,7 @@
 #
 # Variables a renseigner dans Render (Environment) si non presentes ici :
 # DATABASE_URL, JWT_*, SMTP_*, CLOUDINARY_URL, FRONTEND_HOME_URL, CORS_ORIGINS, etc.
+# RENDER_EXTERNAL_URL est injecte automatiquement par Render (non a renseigner) : utilise pour CORS + Swagger.
 # Voir .env.example
 
 services:
