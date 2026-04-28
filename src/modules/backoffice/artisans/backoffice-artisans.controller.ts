@@ -52,7 +52,7 @@ export class BackofficeArtisansController {
   @ApiOperation({
     summary: 'Lister les artisans',
     description:
-      "retourne la liste d artisans affichée dans la grille, filtrée par recherche et statut",
+      'comptes utilisateurs avec le role ARTISAN (table users), filtres recherche et statut',
   })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'status', required: false, example: 'Actif' })
@@ -66,7 +66,7 @@ export class BackofficeArtisansController {
   }
 
   @Get(':artisanId')
-  @ApiParam({ name: 'artisanId', example: 'ART-3021' })
+  @ApiParam({ name: 'artisanId', example: 'USR-5001' })
   @ApiOperation({
     summary: "Détail d'un artisan",
     description:
@@ -78,7 +78,7 @@ export class BackofficeArtisansController {
   }
 
   @Put(':artisanId')
-  @ApiParam({ name: 'artisanId', example: 'ART-3021' })
+  @ApiParam({ name: 'artisanId', example: 'USR-5001' })
   @ApiOperation({
     summary: 'Mettre à jour un artisan',
     description:
@@ -94,7 +94,7 @@ export class BackofficeArtisansController {
   }
 
   @Post(':artisanId/photo')
-  @ApiParam({ name: 'artisanId', example: 'ART-3021' })
+  @ApiParam({ name: 'artisanId', example: 'USR-5001' })
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload photo artisan',
@@ -124,7 +124,7 @@ export class BackofficeArtisansController {
   }
 
   @Patch(':artisanId/status')
-  @ApiParam({ name: 'artisanId', example: 'ART-3021' })
+  @ApiParam({ name: 'artisanId', example: 'USR-5001' })
   @ApiOperation({
     summary: 'Changer uniquement le statut artisan',
     description:

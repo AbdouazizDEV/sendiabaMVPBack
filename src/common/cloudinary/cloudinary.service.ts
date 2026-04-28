@@ -6,6 +6,8 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import { Readable } from 'stream';
 
@@ -72,11 +74,10 @@ export class CloudinaryService implements OnModuleInit {
       });
     }
     if (!this.isConfigured()) {
-      throw new InternalServerErrorException({
-        code: 'CLOUDINARY_NOT_CONFIGURED',
-        message:
-          'Cloudinary nest pas configure (CLOUDINARY_URL). Impossible d uploader l image.',
-      });
+      this.logger.warn(
+        'CLOUDINARY_URL absent : ecriture locale dans UPLOAD_DEST (dev / fallback).',
+      );
+      return this.saveBufferToLocalUploads(buffer, options);
     }
 
     return new Promise((resolve, reject) => {
@@ -114,6 +115,75 @@ export class CloudinaryService implements OnModuleInit {
       );
       Readable.from(buffer).pipe(uploadStream);
     });
+  }
+
+  /**
+   * Sans Cloudinary : enregistre sous UPLOAD_DEST et renvoie une URL servie par /{API_PREFIX}/uploads/...
+   */
+  private async saveBufferToLocalUploads(
+    buffer: Buffer,
+    options: {
+      folder: string;
+      publicId?: string;
+    },
+  ): Promise<CloudinaryImageUploadResult> {
+    const destRoot = this.config.get<string>('UPLOAD_DEST', './uploads');
+    const ext = this.guessImageExtension(buffer);
+    const safeFolder = options.folder.replace(/^\/+/, '').replace(/\\/g, '/');
+    const rawName =
+      options.publicId?.replace(/[^a-zA-Z0-9._-]/g, '_') ?? `img-${Date.now()}`;
+    const relativePosix = `${safeFolder}/${rawName}.${ext}`;
+    const diskPath = join(process.cwd(), destRoot, ...relativePosix.split('/'));
+    await mkdir(dirname(diskPath), { recursive: true });
+    await writeFile(diskPath, buffer);
+
+    const apiPrefix = (
+      this.config.get<string>('API_PREFIX', 'api/v1') || 'api/v1'
+    ).replace(/^\/+|\/+$/g, '');
+    const port =
+      Number.parseInt(String(this.config.get('PORT', 3001)), 10) || 3001;
+    const publicBase = (
+      this.config.get<string>('PUBLIC_BASE_URL')?.trim() ||
+      `http://localhost:${port}`
+    ).replace(/\/$/, '');
+    const secureUrl = `${publicBase}/${apiPrefix}/uploads/${relativePosix}`;
+
+    return {
+      secureUrl,
+      publicId: relativePosix.replace(/\//g, '_'),
+      format: ext,
+    };
+  }
+
+  private guessImageExtension(buf: Buffer): string {
+    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+      return 'jpg';
+    }
+    if (
+      buf.length >= 8 &&
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47
+    ) {
+      return 'png';
+    }
+    if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) {
+      return 'gif';
+    }
+    if (
+      buf.length >= 12 &&
+      buf[0] === 0x52 &&
+      buf[1] === 0x49 &&
+      buf[2] === 0x46 &&
+      buf[8] === 0x57 &&
+      buf[9] === 0x45 &&
+      buf[10] === 0x42 &&
+      buf[11] === 0x50
+    ) {
+      return 'webp';
+    }
+    return 'jpg';
   }
 
   /**

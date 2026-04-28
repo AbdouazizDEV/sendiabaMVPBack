@@ -81,6 +81,7 @@ model Profile {
   phone             String?
   country           String?
   city              String?
+  avatarUrl         String?
   favoriteArtisanId String?
   favoriteArtisan   Artisan? @relation("FavoriteArtisan", fields: [favoriteArtisanId], references: [id])
   updatedAt         DateTime @updatedAt
