@@ -1,4 +1,4 @@
-import type { Artisan, ArtisanStatus, Prisma, UserStatus } from '@prisma/client';
+import type { UserStatus } from '@prisma/client';
 
 export interface ArtisanListFilters {
   search?: string;
@@ -19,14 +19,23 @@ export type BackofficeArtisanUserRow = {
     city: string | null;
     phone: string | null;
     avatarUrl: string | null;
+    craft: string | null;
+    bio: string | null;
+    quote: string | null;
+    heritage: string | null;
+    speciality: string | null;
+    yearsExperience: number | null;
   } | null;
 };
 
 export type UpdateBackofficeArtisanUserData = {
   fullName: string;
+  craft?: string | null;
   city: string;
   email: string;
   phone?: string | null;
+  bio?: string | null;
+  photoUrl?: string | null;
   status: UserStatus;
 };
 
@@ -38,12 +47,6 @@ export interface IBackofficeArtisansRepository {
   update(id: string, data: UpdateBackofficeArtisanUserData): Promise<BackofficeArtisanUserRow | null>;
   updateStatus(id: string, status: UserStatus): Promise<BackofficeArtisanUserRow | null>;
   updatePhoto(id: string, photoUrl: string): Promise<BackofficeArtisanUserRow | null>;
-
-  /** Fiche vitrine (table `artisans`, codes `ART-xxxx`). */
-  findCatalogByIdentifier(identifier: string): Promise<Artisan | null>;
-  updateCatalog(id: string, data: Prisma.ArtisanUpdateInput): Promise<Artisan | null>;
-  updateCatalogStatus(id: string, status: ArtisanStatus): Promise<Artisan | null>;
-  updateCatalogPhoto(id: string, photoUrl: string): Promise<Artisan | null>;
 }
 
 export const BACKOFFICE_ARTISANS_REPOSITORY = Symbol(

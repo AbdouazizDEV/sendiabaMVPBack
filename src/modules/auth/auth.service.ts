@@ -178,7 +178,7 @@ export class AuthService {
         imageUrl: product.imageUrl ?? '',
         artisan: {
           id: publicArtisanId(product.artisan),
-          name: product.artisan.fullName,
+          name: product.artisan.displayName,
         },
       },
     };

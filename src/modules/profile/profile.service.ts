@@ -96,8 +96,8 @@ export class ProfileService {
       });
     }
 
-    const artisan = await this.prisma.artisan.findUnique({
-      where: { referenceCode: ref },
+    const artisan = await this.prisma.user.findFirst({
+      where: { referenceCode: ref, role: 'ARTISAN' },
     });
     if (!artisan) {
       throw new NotFoundException({

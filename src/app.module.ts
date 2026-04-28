@@ -18,6 +18,7 @@ import { PublicContentModule } from './modules/public-content/public-content.mod
 import { HomeModule } from './modules/home/home.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { HealthController } from './health.controller';
+import { ArtisanSpaceModule } from './modules/artisan-space/artisan-space.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { HealthController } from './health.controller';
     AuthModule,
     HomeModule,
     NewsletterModule,
+    ArtisanSpaceModule,
     ProfileModule,
     CartModule,
     CatalogModule,

@@ -4,10 +4,9 @@ export function publicUserId(user: { referenceCode: string }): string {
   return `usr_${body}`;
 }
 
-/** Ex: ART-3018 -> a3018, ART-2 -> a2 */
+/** Ex: USR-4012 -> usr_4012 */
 export function publicArtisanId(artisan: { referenceCode: string }): string {
-  const num = parseInt(artisan.referenceCode.replace(/^ART-/i, ''), 10);
-  return `a${num}`;
+  return publicUserId(artisan);
 }
 
 /** Ex: PRD-12 -> p12, PRD-1 -> p1 */
@@ -16,17 +15,18 @@ export function publicProductId(product: { referenceCode: string }): string {
   return `p${num}`;
 }
 
-/** a3018 -> ART-3018, a2 -> ART-2 */
+/** a3018|usr_3018 -> USR-3018 */
 export function parseArtisanPublicId(id: string): string | null {
-  const m = /^a(\d+)$/i.exec(id.trim());
-  if (!m) {
-    return null;
+  const trimmed = id.trim();
+  const usr = /^usr_(\d+)$/i.exec(trimmed);
+  if (usr) {
+    return `USR-${parseInt(usr[1], 10)}`;
   }
-  const num = parseInt(m[1], 10);
-  if (Number.isNaN(num)) {
-    return null;
+  const legacy = /^a(\d+)$/i.exec(trimmed);
+  if (legacy) {
+    return `USR-${parseInt(legacy[1], 10)}`;
   }
-  return `ART-${num}`;
+  return null;
 }
 
 /** p12 -> PRD-12, p1 -> PRD-1 */

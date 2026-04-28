@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { formatArtisanLocation } from '../../common/utils/artisan-location.util';
 import {
@@ -22,26 +23,31 @@ export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listArtisans(limit: number): Promise<ArtisansCatalogResponseDto> {
-    const rows = await this.prisma.artisan.findMany({
-      orderBy: { fullName: 'asc' },
-      include: { _count: { select: { products: true } } },
+    const rows = await this.prisma.user.findMany({
+      where: { role: UserRole.ARTISAN },
+      orderBy: { displayName: 'asc' },
+      include: {
+        profile: true,
+        _count: { select: { artisanProducts: true } },
+      },
       take: limit,
     });
 
     return {
       items: rows.map((a) => ({
         id: publicArtisanId(a),
-        name: a.fullName,
-        title: a.craft,
-        location: formatArtisanLocation(a.city),
-        heritage: a.heritage ?? '',
-        quote: a.quote ?? '',
-        bio: a.bio ?? '',
+        name: a.displayName,
+        title: a.profile?.craft ?? 'Artisan',
+        location: formatArtisanLocation(a.profile?.city ?? ''),
+        heritage: a.profile?.heritage ?? '',
+        quote: a.profile?.quote ?? '',
+        bio: a.profile?.bio ?? '',
         imageUrl:
-          a.photoUrl ?? `https://cdn.sendiaba.com/artisans/${publicArtisanId(a)}.png`,
-        speciality: a.speciality ?? a.craft,
-        yearsExperience: a.yearsExperience ?? 0,
-        productsCount: a._count.products,
+          a.profile?.avatarUrl ??
+          `https://cdn.sendiaba.com/artisans/${publicArtisanId(a)}.png`,
+        speciality: a.profile?.speciality ?? a.profile?.craft ?? 'Artisanat',
+        yearsExperience: a.profile?.yearsExperience ?? 0,
+        productsCount: a._count.artisanProducts,
       })),
     };
   }
@@ -67,7 +73,7 @@ export class CatalogService {
     const ref = this.parseRequiredProductRef(productId);
     const row = await this.prisma.product.findUnique({
       where: { referenceCode: ref },
-      include: { artisan: true, category: true, subcategory: true },
+      include: { artisan: { include: { profile: true } }, category: true, subcategory: true },
     });
     if (!row) {
       throw new NotFoundException({
@@ -99,9 +105,12 @@ export class CatalogService {
         message: 'Identifiant artisan invalide.',
       });
     }
-    const row = await this.prisma.artisan.findUnique({
-      where: { referenceCode: ref },
-      include: { _count: { select: { products: true } } },
+    const row = await this.prisma.user.findFirst({
+      where: { referenceCode: ref, role: UserRole.ARTISAN },
+      include: {
+        profile: true,
+        _count: { select: { artisanProducts: true } },
+      },
     });
     if (!row) {
       throw new NotFoundException({
@@ -111,17 +120,18 @@ export class CatalogService {
     }
     return {
       id: publicArtisanId(row),
-      name: row.fullName,
-      title: row.craft,
-      location: formatArtisanLocation(row.city),
-      heritage: row.heritage ?? '',
-      quote: row.quote ?? '',
-      bio: row.bio ?? '',
+      name: row.displayName,
+      title: row.profile?.craft ?? 'Artisan',
+      location: formatArtisanLocation(row.profile?.city ?? ''),
+      heritage: row.profile?.heritage ?? '',
+      quote: row.profile?.quote ?? '',
+      bio: row.profile?.bio ?? '',
       imageUrl:
-        row.photoUrl ?? `https://cdn.sendiaba.com/artisans/${publicArtisanId(row)}.png`,
-      speciality: row.speciality ?? row.craft,
-      yearsExperience: row.yearsExperience ?? 0,
-      productsCount: row._count.products,
+        row.profile?.avatarUrl ??
+        `https://cdn.sendiaba.com/artisans/${publicArtisanId(row)}.png`,
+      speciality: row.profile?.speciality ?? row.profile?.craft ?? 'Artisanat',
+      yearsExperience: row.profile?.yearsExperience ?? 0,
+      productsCount: row._count.artisanProducts,
     };
   }
 
@@ -134,10 +144,10 @@ export class CatalogService {
       });
     }
 
-    const artisan = await this.prisma.artisan.findUnique({
-      where: { referenceCode: ref },
+    const artisan = await this.prisma.user.findFirst({
+      where: { referenceCode: ref, role: UserRole.ARTISAN },
       include: {
-        products: {
+        artisanProducts: {
           include: { category: true },
           orderBy: [{ createdAt: 'desc' }, { referenceCode: 'asc' }],
         },
@@ -152,7 +162,7 @@ export class CatalogService {
 
     return {
       artisanId: publicArtisanId(artisan),
-      items: artisan.products.map((p) => ({
+      items: artisan.artisanProducts.map((p) => ({
         id: publicProductId(p),
         name: p.name,
         category: p.category.slug,
@@ -186,7 +196,7 @@ export class CatalogService {
         categoryId: origin.categoryId,
         NOT: { id: origin.id },
       },
-      include: { artisan: true, category: true },
+      include: { artisan: { include: { profile: true } }, category: true },
       orderBy: [{ createdAt: 'desc' }, { referenceCode: 'asc' }],
       take: limit,
     });
