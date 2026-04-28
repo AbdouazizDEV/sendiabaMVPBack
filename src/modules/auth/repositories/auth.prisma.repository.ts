@@ -54,7 +54,7 @@ export class AuthPrismaRepository implements IAuthRepository {
     name: string;
     price: number;
     imageUrl: string | null;
-    artisan: { referenceCode: string; fullName: string };
+    artisan: { referenceCode: string; displayName: string };
   } | null> {
     return this.prisma.product.findFirst({
       orderBy: { createdAt: 'desc' },
@@ -66,7 +66,7 @@ export class AuthPrismaRepository implements IAuthRepository {
         artisan: {
           select: {
             referenceCode: true,
-            fullName: true,
+            displayName: true,
           },
         },
       },

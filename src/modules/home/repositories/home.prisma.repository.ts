@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Artisan, BrandTicker, Category, HomepageHero, PressItem, PromoBanner, Stats } from '@prisma/client';
+import {
+  BrandTicker,
+  Category,
+  HomepageHero,
+  PressItem,
+  PromoBanner,
+  Stats,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 import { HomeProduct, IHomeRepository } from './home.repository.interface';
 
@@ -22,7 +30,7 @@ export class HomePrismaRepository implements IHomeRepository {
   async findProductsByCategory(categorySlug: string, limit: number): Promise<HomeProduct[]> {
     return this.prisma.product.findMany({
       where: { category: { slug: categorySlug } },
-      include: { artisan: { select: { id: true, fullName: true } } },
+      include: { artisan: { select: { id: true, referenceCode: true, displayName: true } } },
       take: limit,
       orderBy: { createdAt: 'desc' },
     });
@@ -30,7 +38,7 @@ export class HomePrismaRepository implements IHomeRepository {
 
   async findFeaturedProducts(limit: number): Promise<HomeProduct[]> {
     return this.prisma.product.findMany({
-      include: { artisan: { select: { id: true, fullName: true } } },
+      include: { artisan: { select: { id: true, referenceCode: true, displayName: true } } },
       take: limit,
       orderBy: { createdAt: 'desc' },
     });
@@ -40,9 +48,11 @@ export class HomePrismaRepository implements IHomeRepository {
     return this.prisma.promoBanner.findFirst();
   }
 
-  async findArtisans(limit: number): Promise<Artisan[]> {
-    return this.prisma.artisan.findMany({
+  async findArtisans(limit: number) {
+    return this.prisma.user.findMany({
+      where: { role: UserRole.ARTISAN },
       orderBy: { createdAt: 'desc' },
+      select: { id: true, referenceCode: true, displayName: true },
       take: limit,
     });
   }

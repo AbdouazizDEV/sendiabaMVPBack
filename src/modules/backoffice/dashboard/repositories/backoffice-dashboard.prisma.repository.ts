@@ -21,7 +21,7 @@ export class BackofficeDashboardPrismaRepository
   }
 
   async countArtisans(): Promise<number> {
-    return this.prisma.artisan.count();
+    return this.prisma.user.count({ where: { role: UserRole.ARTISAN } });
   }
 
   async getCurrentMonthOrderStats(): Promise<OrderMonthStats> {

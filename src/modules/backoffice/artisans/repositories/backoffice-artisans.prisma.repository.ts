@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  ArtisanStatus,
-  Prisma,
-  UserRole,
-  UserStatus,
-} from '@prisma/client';
+import { Prisma, UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../../database/prisma.service';
 import {
   ArtisanListFilters,
@@ -20,7 +15,19 @@ const userArtisanSelect = {
   email: true,
   status: true,
   updatedAt: true,
-  profile: { select: { city: true, phone: true, avatarUrl: true } },
+  profile: {
+    select: {
+      city: true,
+      phone: true,
+      avatarUrl: true,
+      craft: true,
+      bio: true,
+      quote: true,
+      heritage: true,
+      speciality: true,
+      yearsExperience: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 @Injectable()
@@ -82,10 +89,16 @@ export class BackofficeArtisansPrismaRepository implements IBackofficeArtisansRe
             create: {
               city: data.city,
               phone: data.phone ?? null,
+              craft: data.craft ?? null,
+              bio: data.bio ?? null,
+              avatarUrl: data.photoUrl ?? null,
             },
             update: {
               city: data.city,
               phone: data.phone ?? null,
+              craft: data.craft ?? null,
+              bio: data.bio ?? null,
+              avatarUrl: data.photoUrl ?? null,
             },
           },
         },
@@ -164,38 +177,4 @@ export class BackofficeArtisansPrismaRepository implements IBackofficeArtisansRe
     };
   }
 
-  async findCatalogByIdentifier(identifier: string) {
-    return this.prisma.artisan.findFirst({
-      where: {
-        OR: [{ id: identifier }, { referenceCode: identifier }],
-      },
-    });
-  }
-
-  async updateCatalog(id: string, data: Prisma.ArtisanUpdateInput) {
-    try {
-      return await this.prisma.artisan.update({ where: { id }, data });
-    } catch {
-      return null;
-    }
-  }
-
-  async updateCatalogStatus(id: string, status: ArtisanStatus) {
-    try {
-      return await this.prisma.artisan.update({ where: { id }, data: { status } });
-    } catch {
-      return null;
-    }
-  }
-
-  async updateCatalogPhoto(id: string, photoUrl: string) {
-    try {
-      return await this.prisma.artisan.update({
-        where: { id },
-        data: { photoUrl },
-      });
-    } catch {
-      return null;
-    }
-  }
 }

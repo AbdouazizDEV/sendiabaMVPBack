@@ -109,7 +109,7 @@ export class CollectionsService {
       include: {
         subcategories: { orderBy: { name: 'asc' } },
         products: {
-          include: { artisan: true, subcategory: true },
+          include: { artisan: { include: { profile: true } }, subcategory: true },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -159,7 +159,7 @@ export class CollectionsService {
     for (const p of category.products) {
       availableArtisansMap.set(p.artisan.id, {
         id: publicArtisanId(p.artisan),
-        name: p.artisan.fullName,
+        name: p.artisan.displayName,
       });
     }
 
@@ -192,7 +192,7 @@ export class CollectionsService {
         inStock: p.inStock,
         artisan: {
           id: publicArtisanId(p.artisan),
-          name: p.artisan.fullName,
+          name: p.artisan.displayName,
         },
         href: p.href ?? `/produit/${publicProductId(p)}`,
       })),

@@ -25,7 +25,7 @@ export interface IAuthRepository {
     imageUrl: string | null;
     artisan: {
       referenceCode: string;
-      fullName: string;
+      displayName: string;
     };
   } | null>;
 }

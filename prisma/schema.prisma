@@ -24,12 +24,6 @@ enum UserStatus {
   PENDING
 }
 
-enum ArtisanStatus {
-  ACTIVE
-  PENDING
-  SUSPENDED
-}
-
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -56,6 +50,8 @@ model User {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   profile         Profile?
+  artisanProducts Product[]       @relation("UserProducts")
+  favoredByProfiles Profile[]     @relation("FavoriteArtisanUser")
   cart          Cart?
   orders        Order[]
   refreshTokens RefreshToken[]
@@ -82,8 +78,14 @@ model Profile {
   country           String?
   city              String?
   avatarUrl         String?
+  craft             String?
+  bio               String?
+  quote             String?
+  heritage          String?
+  speciality        String?
+  yearsExperience   Int?
   favoriteArtisanId String?
-  favoriteArtisan   Artisan? @relation("FavoriteArtisan", fields: [favoriteArtisanId], references: [id])
+  favoriteArtisan   User?     @relation("FavoriteArtisanUser", fields: [favoriteArtisanId], references: [id])
   updatedAt         DateTime @updatedAt
   favoriteProducts  ProfileFavoriteProduct[]
 
@@ -99,29 +101,6 @@ model ProfileFavoriteProduct {
 
   @@id([profileId, productId])
   @@map("profile_favorite_products")
-}
-
-model Artisan {
-  id              String        @id @default(cuid())
-  referenceCode   String        @unique
-  fullName        String
-  craft           String
-  city            String
-  email           String        @unique
-  phone           String?
-  photoUrl        String?
-  bio             String?
-  quote           String?
-  heritage        String?
-  speciality      String?
-  yearsExperience Int?
-  status          ArtisanStatus @default(ACTIVE)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  products        Product[]
-  favoritedByUsers Profile[]    @relation("FavoriteArtisan")
-
-  @@map("artisans")
 }
 
 model Category {
@@ -162,7 +141,7 @@ model Product {
   inStock       Boolean                 @default(true)
   href          String?
   artisanId     String
-  artisan       Artisan                 @relation(fields: [artisanId], references: [id])
+  artisan       User                    @relation("UserProducts", fields: [artisanId], references: [id])
   categoryId    String
   category      Category                @relation(fields: [categoryId], references: [id])
   subcategoryId String?
