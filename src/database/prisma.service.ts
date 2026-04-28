@@ -14,8 +14,16 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit(): Promise<void> {
-    await this.$connect();
-    this.logger.log('Database connected');
+    try {
+      await this.$connect();
+      this.logger.log('Database connected');
+    } catch (error) {
+      this.logger.error(
+        'Database connection failed. Verify DATABASE_URL/network access to your Postgres host.',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

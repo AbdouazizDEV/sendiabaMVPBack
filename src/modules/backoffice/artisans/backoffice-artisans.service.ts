@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Artisan, ArtisanStatus, Prisma, UserStatus } from '@prisma/client';
+import { UserStatus } from '@prisma/client';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import {
   BACKOFFICE_ARTISANS_REPOSITORY,
@@ -20,10 +20,6 @@ import {
   UpdateBackofficeArtisanResponseDto,
   UploadArtisanPhotoResponseDto,
 } from './dto/backoffice-artisans.dto';
-
-type ResolvedArtisan =
-  | { kind: 'user'; row: BackofficeArtisanUserRow }
-  | { kind: 'catalog'; row: Artisan };
 
 @Injectable()
 export class BackofficeArtisansService {
@@ -59,51 +55,26 @@ export class BackofficeArtisansService {
   }
 
   async findOne(artisanId: string): Promise<BackofficeArtisanDto> {
-    const resolved = await this.resolveArtisan(artisanId);
-    return this.toDto(resolved);
+    const row = await this.resolveArtisanUser(artisanId);
+    return this.toResponseFromUser(row);
   }
 
   async update(
     artisanId: string,
     dto: UpdateBackofficeArtisanDto,
   ): Promise<UpdateBackofficeArtisanResponseDto> {
-    const resolved = await this.resolveArtisan(artisanId);
-    if (resolved.kind === 'user') {
-      const status = this.parseRequiredUserStatus(dto.status);
-      const updated = await this.artisansRepository.update(resolved.row.id, {
-        fullName: dto.fullName,
-        city: dto.city,
-        email: dto.email,
-        phone: dto.phone,
-        status,
-      });
-      if (!updated) {
-        throw new NotFoundException({
-          code: 'ARTISAN_NOT_FOUND',
-          message: 'Artisan introuvable.',
-        });
-      }
-      return {
-        success: true,
-        message: 'Profil artisan mis a jour.',
-        data: {
-          ...this.toResponseFromUser(updated),
-          updatedAt: updated.updatedAt.toISOString(),
-        },
-      };
-    }
-
-    const status = this.parseRequiredArtisanStatus(dto.status);
-    const updated = await this.artisansRepository.updateCatalog(resolved.row.id, {
+    const existing = await this.resolveArtisanUser(artisanId);
+    const status = this.parseRequiredUserStatus(dto.status);
+    const updated = await this.artisansRepository.update(existing.id, {
       fullName: dto.fullName,
       craft: dto.craft,
       city: dto.city,
       email: dto.email,
-      phone: dto.phone ?? null,
-      photoUrl: dto.photoUrl ?? null,
-      bio: dto.bio ?? null,
+      phone: dto.phone,
+      photoUrl: dto.photoUrl,
+      bio: dto.bio,
       status,
-    } satisfies Prisma.ArtisanUpdateInput);
+    });
     if (!updated) {
       throw new NotFoundException({
         code: 'ARTISAN_NOT_FOUND',
@@ -114,7 +85,7 @@ export class BackofficeArtisansService {
       success: true,
       message: 'Profil artisan mis a jour.',
       data: {
-        ...this.toResponseFromCatalog(updated),
+        ...this.toResponseFromUser(updated),
         updatedAt: updated.updatedAt.toISOString(),
       },
     };
@@ -124,7 +95,7 @@ export class BackofficeArtisansService {
     artisanIdentifier: string,
     file: Express.Multer.File,
   ): Promise<UploadArtisanPhotoResponseDto> {
-    const resolved = await this.resolveArtisan(artisanIdentifier);
+    const resolved = await this.resolveArtisanUser(artisanIdentifier);
     const buffer = file?.buffer;
     if (!buffer?.length) {
       throw new BadRequestException({
@@ -133,32 +104,11 @@ export class BackofficeArtisansService {
       });
     }
     const dateStr = new Date().toISOString().slice(0, 10);
-    if (resolved.kind === 'user') {
-      const { secureUrl } = await this.cloudinary.uploadImageBuffer(buffer, {
-        folder: `sendiaba/artisan-users/${resolved.row.referenceCode}`,
-        publicId: `profile-${dateStr}-${Date.now()}`,
-      });
-      const updated = await this.artisansRepository.updatePhoto(
-        resolved.row.id,
-        secureUrl,
-      );
-      if (!updated) {
-        throw new NotFoundException({
-          code: 'ARTISAN_NOT_FOUND',
-          message: 'Artisan introuvable.',
-        });
-      }
-      return { success: true, data: { photoUrl: secureUrl } };
-    }
-
     const { secureUrl } = await this.cloudinary.uploadImageBuffer(buffer, {
-      folder: `sendiaba/artisans/${resolved.row.referenceCode}`,
+      folder: `sendiaba/artisans/${resolved.referenceCode}`,
       publicId: `profile-${dateStr}-${Date.now()}`,
     });
-    const updated = await this.artisansRepository.updateCatalogPhoto(
-      resolved.row.id,
-      secureUrl,
-    );
+    const updated = await this.artisansRepository.updatePhoto(resolved.id, secureUrl);
     if (!updated) {
       throw new NotFoundException({
         code: 'ARTISAN_NOT_FOUND',
@@ -172,31 +122,10 @@ export class BackofficeArtisansService {
     artisanId: string,
     statusText: string,
   ): Promise<UpdateArtisanStatusResponseDto> {
-    const resolved = await this.resolveArtisan(artisanId);
-    if (resolved.kind === 'user') {
-      const updated = await this.artisansRepository.updateStatus(
-        resolved.row.id,
-        this.parseRequiredUserStatus(statusText),
-      );
-      if (!updated) {
-        throw new NotFoundException({
-          code: 'ARTISAN_NOT_FOUND',
-          message: 'Artisan introuvable.',
-        });
-      }
-      return {
-        success: true,
-        data: {
-          id: updated.referenceCode,
-          status: this.toUserStatusLabel(updated.status),
-          updatedAt: updated.updatedAt.toISOString(),
-        },
-      };
-    }
-
-    const updated = await this.artisansRepository.updateCatalogStatus(
-      resolved.row.id,
-      this.parseRequiredArtisanStatus(statusText),
+    const existing = await this.resolveArtisanUser(artisanId);
+    const updated = await this.artisansRepository.updateStatus(
+      existing.id,
+      this.parseRequiredUserStatus(statusText),
     );
     if (!updated) {
       throw new NotFoundException({
@@ -208,20 +137,18 @@ export class BackofficeArtisansService {
       success: true,
       data: {
         id: updated.referenceCode,
-        status: this.toCatalogStatusLabel(updated.status),
+        status: this.toUserStatusLabel(updated.status),
         updatedAt: updated.updatedAt.toISOString(),
       },
     };
   }
 
-  private async resolveArtisan(identifier: string): Promise<ResolvedArtisan> {
+  private async resolveArtisanUser(
+    identifier: string,
+  ): Promise<BackofficeArtisanUserRow> {
     const userRow = await this.artisansRepository.findByIdentifier(identifier);
     if (userRow) {
-      return { kind: 'user', row: userRow };
-    }
-    const catalog = await this.artisansRepository.findCatalogByIdentifier(identifier);
-    if (catalog) {
-      return { kind: 'catalog', row: catalog };
+      return userRow;
     }
     throw new NotFoundException({
       code: 'ARTISAN_NOT_FOUND',
@@ -229,37 +156,17 @@ export class BackofficeArtisansService {
     });
   }
 
-  private toDto(resolved: ResolvedArtisan): BackofficeArtisanDto {
-    return resolved.kind === 'user'
-      ? this.toResponseFromUser(resolved.row)
-      : this.toResponseFromCatalog(resolved.row);
-  }
-
   private toResponseFromUser(row: BackofficeArtisanUserRow): BackofficeArtisanDto {
     return {
       id: row.referenceCode,
       fullName: row.displayName,
-      craft: '',
+      craft: row.profile?.craft ?? '',
       city: row.profile?.city ?? '',
       email: row.email,
       phone: row.profile?.phone ?? null,
       photoUrl: row.profile?.avatarUrl ?? null,
-      bio: null,
+      bio: row.profile?.bio ?? null,
       status: this.toUserStatusLabel(row.status),
-    };
-  }
-
-  private toResponseFromCatalog(row: Artisan): BackofficeArtisanDto {
-    return {
-      id: row.referenceCode,
-      fullName: row.fullName,
-      craft: row.craft,
-      city: row.city,
-      email: row.email,
-      phone: row.phone,
-      photoUrl: row.photoUrl,
-      bio: row.bio,
-      status: this.toCatalogStatusLabel(row.status),
     };
   }
 
@@ -293,24 +200,6 @@ export class BackofficeArtisansService {
     }
   }
 
-  private parseRequiredArtisanStatus(text: string): ArtisanStatus {
-    switch (text.toLowerCase()) {
-      case 'actif':
-      case 'active':
-        return ArtisanStatus.ACTIVE;
-      case 'en attente':
-      case 'pending':
-        return ArtisanStatus.PENDING;
-      case 'suspendu':
-      case 'suspended':
-        return ArtisanStatus.SUSPENDED;
-      default:
-        throw new BadRequestException({
-          code: 'INVALID_STATUS',
-          message: 'Statut artisan (vitrine) invalide.',
-        });
-    }
-  }
 
   private toUserStatusLabel(status: UserStatus): string {
     switch (status) {
@@ -323,14 +212,4 @@ export class BackofficeArtisansService {
     }
   }
 
-  private toCatalogStatusLabel(status: ArtisanStatus): string {
-    switch (status) {
-      case ArtisanStatus.ACTIVE:
-        return 'Actif';
-      case ArtisanStatus.PENDING:
-        return 'En attente';
-      case ArtisanStatus.SUSPENDED:
-        return 'Suspendu';
-    }
-  }
 }

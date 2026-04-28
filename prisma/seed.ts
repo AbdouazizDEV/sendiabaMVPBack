@@ -15,7 +15,6 @@ async function main(): Promise<void> {
   await prisma.product.deleteMany();
   await prisma.subcategory.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.artisan.deleteMany();
   await prisma.newsletterSubscription.deleteMany();
   await prisma.contentEntry.deleteMany();
   await prisma.homepageHero.deleteMany();
@@ -72,15 +71,15 @@ async function main(): Promise<void> {
   const artisans = await Promise.all(
     [
       {
-        referenceCode: 'ART-3017',
-        fullName: 'Ibrahima Gueye',
+        referenceCode: 'USR-3017',
+        displayName: 'Ibrahima Gueye',
         craft: 'Maroquinier',
         city: 'Dakar',
         email: 'ibrahima@sendiaba.com',
       },
       {
-        referenceCode: 'ART-2',
-        fullName: 'Fatouma Diabaté',
+        referenceCode: 'USR-2',
+        displayName: 'Fatouma Diabaté',
         craft: "Tisserande d'Art",
         city: 'Ségou',
         email: 'fatouma@sendiaba.com',
@@ -88,27 +87,46 @@ async function main(): Promise<void> {
         photoUrl: 'https://cdn.sendiaba.com/artisans/a2.png',
       },
       {
-        referenceCode: 'ART-3021',
-        fullName: 'Awa Ndiaye',
+        referenceCode: 'USR-3021',
+        displayName: 'Awa Ndiaye',
         craft: 'Ceramiste',
         city: 'Saint-Louis',
         email: 'awa@sendiaba.com',
       },
       {
-        referenceCode: 'ART-3019',
-        fullName: 'Moussa Kone',
+        referenceCode: 'USR-3019',
+        displayName: 'Moussa Kone',
         craft: 'Sculpteur',
         city: 'Abidjan',
         email: 'moussa@sendiaba.com',
       },
       {
-        referenceCode: 'ART-3020',
-        fullName: 'Seynabou Fall',
+        referenceCode: 'USR-3020',
+        displayName: 'Seynabou Fall',
         craft: 'Bijoutiere',
         city: 'Thiès',
         email: 'seynabou@sendiaba.com',
       },
-    ].map((artisan) => prisma.artisan.create({ data: artisan })),
+    ].map((artisan) =>
+      prisma.user.create({
+        data: {
+          referenceCode: artisan.referenceCode,
+          email: artisan.email,
+          password,
+          displayName: artisan.displayName,
+          role: UserRole.ARTISAN,
+          status: UserStatus.ACTIVE,
+          profile: {
+            create: {
+              city: artisan.city,
+              craft: artisan.craft,
+              bio: artisan.bio ?? null,
+              avatarUrl: artisan.photoUrl ?? null,
+            },
+          },
+        },
+      }),
+    ),
   );
 
   const categories = await Promise.all(
@@ -173,8 +191,8 @@ async function main(): Promise<void> {
   const aminataProfile = await prisma.profile.findUniqueOrThrow({
     where: { userId: aminata.id },
   });
-  const fatouma = await prisma.artisan.findFirstOrThrow({
-    where: { referenceCode: 'ART-2' },
+  const fatouma = await prisma.user.findFirstOrThrow({
+    where: { referenceCode: 'USR-2' },
   });
   await prisma.profile.update({
     where: { id: aminataProfile.id },
