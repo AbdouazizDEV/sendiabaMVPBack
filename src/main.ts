@@ -1,13 +1,16 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import express from 'express';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const port = Number.parseInt(String(config.get('PORT', 3001)), 10) || 3001;
 
@@ -41,7 +44,18 @@ async function bootstrap(): Promise<void> {
     addOrigin(`http://localhost:${port}`);
   }
 
-  app.setGlobalPrefix(config.get<string>('API_PREFIX', 'api/v1'));
+  const apiPrefix = (config.get<string>('API_PREFIX', 'api/v1') || 'api/v1').replace(
+    /^\/+|\/+$/g,
+    '',
+  );
+  app.setGlobalPrefix(apiPrefix);
+
+  const uploadDest = join(
+    process.cwd(),
+    config.get<string>('UPLOAD_DEST', 'uploads'),
+  );
+  app.use(`/${apiPrefix}/uploads`, express.static(uploadDest));
+
   app.enableCors({
     origin: (
       origin: string | undefined,
