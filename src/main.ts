@@ -9,14 +9,26 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const port = Number.parseInt(String(config.get('PORT', 3001)), 10) || 3001;
+
   const configuredOrigins = (config.get<string>('CORS_ORIGINS', '') || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
-  const corsOrigins =
+  const corsOrigins: string[] =
     configuredOrigins.length > 0
-      ? configuredOrigins
-      : ['http://localhost:3000', 'http://localhost:5173'];
+      ? [...configuredOrigins]
+      : [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:5173',
+        ];
+  if (config.get<string>('NODE_ENV') !== 'production') {
+    const selfOrigin = `http://localhost:${port}`;
+    if (!corsOrigins.includes(selfOrigin)) {
+      corsOrigins.push(selfOrigin);
+    }
+  }
 
   app.setGlobalPrefix(config.get<string>('API_PREFIX', 'api/v1'));
   app.enableCors({
@@ -58,7 +70,6 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = config.get<number>('PORT', 3001);
   await app.listen(port);
 }
 
