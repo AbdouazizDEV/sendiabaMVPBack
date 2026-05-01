@@ -22,6 +22,55 @@ import type {
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveArtisanByPublicId(artisanId: string) {
+    const ref = parseArtisanPublicId(artisanId);
+    if (!ref) {
+      throw new BadRequestException({
+        code: 'INVALID_ARTISAN_ID',
+        message: 'Identifiant artisan invalide.',
+      });
+    }
+
+    // 1) Resolution normale via referenceCode derivee du public id.
+    const direct = await this.prisma.user.findFirst({
+      where: { referenceCode: ref, role: UserRole.ARTISAN },
+      include: {
+        profile: true,
+        _count: { select: { artisanProducts: true } },
+        artisanProducts: {
+          include: { category: true },
+          orderBy: [{ createdAt: 'desc' }, { referenceCode: 'asc' }],
+        },
+      },
+    });
+    if (direct) {
+      return direct;
+    }
+
+    // 2) Compat legacy: a1/a2/... comme index ordinal de la liste publique.
+    const legacy = /^a(\d+)$/i.exec(artisanId.trim());
+    if (!legacy) {
+      return null;
+    }
+    const rank = parseInt(legacy[1], 10);
+    if (!Number.isFinite(rank) || rank < 1) {
+      return null;
+    }
+    return this.prisma.user.findFirst({
+      where: { role: UserRole.ARTISAN },
+      orderBy: { displayName: 'asc' },
+      skip: rank - 1,
+      include: {
+        profile: true,
+        _count: { select: { artisanProducts: true } },
+        artisanProducts: {
+          include: { category: true },
+          orderBy: [{ createdAt: 'desc' }, { referenceCode: 'asc' }],
+        },
+      },
+    });
+  }
+
   async listArtisans(limit: number): Promise<ArtisansCatalogResponseDto> {
     const rows = await this.prisma.user.findMany({
       where: { role: UserRole.ARTISAN },
@@ -98,20 +147,7 @@ export class CatalogService {
   }
 
   async getArtisanDetail(artisanId: string): Promise<ArtisanDetailDto> {
-    const ref = parseArtisanPublicId(artisanId);
-    if (!ref) {
-      throw new BadRequestException({
-        code: 'INVALID_ARTISAN_ID',
-        message: 'Identifiant artisan invalide.',
-      });
-    }
-    const row = await this.prisma.user.findFirst({
-      where: { referenceCode: ref, role: UserRole.ARTISAN },
-      include: {
-        profile: true,
-        _count: { select: { artisanProducts: true } },
-      },
-    });
+    const row = await this.resolveArtisanByPublicId(artisanId);
     if (!row) {
       throw new NotFoundException({
         code: 'ARTISAN_NOT_FOUND',
@@ -136,23 +172,7 @@ export class CatalogService {
   }
 
   async getArtisanProducts(artisanId: string): Promise<ArtisanProductsResponseDto> {
-    const ref = parseArtisanPublicId(artisanId);
-    if (!ref) {
-      throw new BadRequestException({
-        code: 'INVALID_ARTISAN_ID',
-        message: 'Identifiant artisan invalide.',
-      });
-    }
-
-    const artisan = await this.prisma.user.findFirst({
-      where: { referenceCode: ref, role: UserRole.ARTISAN },
-      include: {
-        artisanProducts: {
-          include: { category: true },
-          orderBy: [{ createdAt: 'desc' }, { referenceCode: 'asc' }],
-        },
-      },
-    });
+    const artisan = await this.resolveArtisanByPublicId(artisanId);
     if (!artisan) {
       throw new NotFoundException({
         code: 'ARTISAN_NOT_FOUND',

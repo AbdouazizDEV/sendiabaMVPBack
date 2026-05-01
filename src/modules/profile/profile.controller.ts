@@ -19,6 +19,7 @@ import type { User } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   FavoriteArtisanBodyDto,
+  FavoriteArtisansSuccessDto,
   FavoriteArtisanSuccessDto,
   FavoriteProductBodyDto,
   FavoriteProductsSuccessDto,
@@ -43,6 +44,30 @@ export class ProfileController {
   @ApiOkResponse({ type: ProfileMeResponseDto })
   async getMe(@CurrentUser() user: User): Promise<ProfileMeResponseDto> {
     return this.profileService.getMe(user);
+  }
+
+  @Post('me/favorite-artisans')
+  @ApiOperation({
+    summary: 'Ajouter un artisan aux favoris',
+    description: 'identifiant public artisan (ex: usr_3017)',
+  })
+  @ApiOkResponse({ type: FavoriteArtisansSuccessDto })
+  async addFavoriteArtisan(
+    @CurrentUser() user: User,
+    @Body() dto: FavoriteArtisanBodyDto,
+  ): Promise<FavoriteArtisansSuccessDto> {
+    return this.profileService.addFavoriteArtisan(user, dto);
+  }
+
+  @Delete('me/favorite-artisans/:artisanId')
+  @ApiParam({ name: 'artisanId', example: 'usr_3017' })
+  @ApiOperation({ summary: 'Retirer un artisan des favoris' })
+  @ApiOkResponse({ type: FavoriteArtisansSuccessDto })
+  async removeFavoriteArtisan(
+    @CurrentUser() user: User,
+    @Param('artisanId') artisanId: string,
+  ): Promise<FavoriteArtisansSuccessDto> {
+    return this.profileService.removeFavoriteArtisan(user, artisanId);
   }
 
   @Put('me/personal-info')

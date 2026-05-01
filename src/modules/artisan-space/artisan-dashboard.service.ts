@@ -10,7 +10,16 @@ export class ArtisanDashboardService {
     const [orders, products] = await Promise.all([
       this.prisma.order.findMany({
         where: { lines: { some: { product: { artisanId: user.id } } } },
-        include: { lines: { include: { product: true } } },
+        select: {
+          userId: true,
+          lines: {
+            select: {
+              unitPrice: true,
+              quantity: true,
+              product: { select: { artisanId: true } },
+            },
+          },
+        },
       }),
       this.prisma.product.count({ where: { artisanId: user.id } }),
     ]);

@@ -14,7 +14,10 @@ export class AuthMailService {
     displayName: string;
     verificationLink: string;
   }): Promise<void> {
-    const from = this.configService.get<string>('MAIL_FROM', 'no-reply@sendiaba.com');
+    const from =
+      this.configService.get<string>('MAIL_FROM') ??
+      this.configService.get<string>('SMTP_FROM') ??
+      'no-reply@sendiaba.com';
     const transporter = this.getTransporter();
     const html = this.buildTemplate(payload.displayName, payload.verificationLink);
 

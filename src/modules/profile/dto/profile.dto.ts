@@ -9,6 +9,8 @@ export class ProfileMeResponseDto {
   @ApiProperty() country!: string;
   @ApiProperty() city!: string;
   @ApiProperty({ nullable: true, example: 'a2' }) favoriteArtisanId!: string | null;
+  @ApiProperty({ type: [String], example: ['usr_3017', 'usr_3018'] })
+  favoriteArtisanIds!: string[];
   @ApiProperty({ type: [String], example: ['p1', 'p7', 'p12'] })
   favoriteProductIds!: string[];
 }
@@ -42,6 +44,14 @@ export class FavoriteArtisanSuccessDto {
     example: { favoriteArtisanId: 'a2' },
   })
   data!: { favoriteArtisanId: string | null };
+}
+
+export class FavoriteArtisansSuccessDto {
+  @ApiProperty() success!: true;
+  @ApiProperty({
+    example: { favoriteArtisanIds: ['usr_3017', 'usr_3018'] },
+  })
+  data!: { favoriteArtisanIds: string[] };
 }
 
 export class FavoriteProductBodyDto {

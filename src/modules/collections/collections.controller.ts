@@ -57,6 +57,8 @@ export class CollectionsController {
   @ApiQuery({ name: 'priceRange', required: false, example: '100-250' })
   @ApiQuery({ name: 'inStockOnly', required: false, example: true })
   @ApiQuery({ name: 'sort', required: false, example: 'prix_asc' })
+  @ApiQuery({ name: 'limit', required: false, example: 24 })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiOperation({
     summary: 'Catalogue catégorie',
     description:

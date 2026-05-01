@@ -13,9 +13,25 @@ export class ArtisanCustomersService {
       where: {
         lines: { some: { product: { artisanId: user.id } } },
       },
-      include: {
-        user: { include: { profile: true } },
-        lines: { include: { product: true } },
+      select: {
+        userId: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            referenceCode: true,
+            displayName: true,
+            email: true,
+            profile: { select: { city: true } },
+          },
+        },
+        lines: {
+          select: {
+            unitPrice: true,
+            quantity: true,
+            product: { select: { artisanId: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -21,6 +21,7 @@ import type {
 
 const profileInclude = {
   favoriteArtisan: true,
+  favoriteArtisans: { include: { artisan: true } },
   favoriteProducts: { include: { product: true } },
 } satisfies Prisma.ProfileInclude;
 
@@ -153,6 +154,70 @@ export class ProfileService {
     return { success: true, data: { favoriteProductIds: ids } };
   }
 
+  async addFavoriteArtisan(
+    user: User,
+    dto: FavoriteArtisanBodyDto,
+  ): Promise<{ success: true; data: { favoriteArtisanIds: string[] } }> {
+    const raw = dto.artisanId;
+    if (!raw) {
+      throw new BadRequestException({
+        code: 'INVALID_ARTISAN_ID',
+        message: 'Identifiant artisan invalide.',
+      });
+    }
+    const ref = parseArtisanPublicId(raw);
+    if (!ref) {
+      throw new BadRequestException({
+        code: 'INVALID_ARTISAN_ID',
+        message: 'Identifiant artisan invalide.',
+      });
+    }
+    const artisan = await this.prisma.user.findFirst({
+      where: { referenceCode: ref, role: 'ARTISAN' },
+    });
+    if (!artisan) {
+      throw new NotFoundException({
+        code: 'ARTISAN_NOT_FOUND',
+        message: 'Artisan introuvable.',
+      });
+    }
+    const profile = await this.ensureProfile(user.id);
+    await this.prisma.profileFavoriteArtisan.upsert({
+      where: { profileId_artisanId: { profileId: profile.id, artisanId: artisan.id } },
+      create: { profileId: profile.id, artisanId: artisan.id },
+      update: {},
+    });
+    return { success: true, data: { favoriteArtisanIds: await this.listFavoriteArtisanPublicIds(profile.id) } };
+  }
+
+  async removeFavoriteArtisan(
+    user: User,
+    artisanPublicId: string,
+  ): Promise<{ success: true; data: { favoriteArtisanIds: string[] } }> {
+    const ref = parseArtisanPublicId(artisanPublicId);
+    if (!ref) {
+      throw new BadRequestException({
+        code: 'INVALID_ARTISAN_ID',
+        message: 'Identifiant artisan invalide.',
+      });
+    }
+    const artisan = await this.prisma.user.findFirst({ where: { referenceCode: ref, role: 'ARTISAN' } });
+    if (!artisan) {
+      throw new NotFoundException({
+        code: 'ARTISAN_NOT_FOUND',
+        message: 'Artisan introuvable.',
+      });
+    }
+    const profile = await this.prisma.profile.findUnique({ where: { userId: user.id } });
+    if (!profile) {
+      return { success: true, data: { favoriteArtisanIds: [] } };
+    }
+    await this.prisma.profileFavoriteArtisan.deleteMany({
+      where: { profileId: profile.id, artisanId: artisan.id },
+    });
+    return { success: true, data: { favoriteArtisanIds: await this.listFavoriteArtisanPublicIds(profile.id) } };
+  }
+
   async removeFavoriteProduct(
     user: User,
     productPublicId: string,
@@ -199,6 +264,17 @@ export class ProfileService {
       orderBy: { addedAt: 'asc' },
     });
     return rows.map((r) => publicProductId(r.product));
+  }
+
+  private async listFavoriteArtisanPublicIds(
+    profileId: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.profileFavoriteArtisan.findMany({
+      where: { profileId },
+      include: { artisan: true },
+      orderBy: { addedAt: 'asc' },
+    });
+    return rows.map((row) => publicArtisanId(row.artisan));
   }
 
   private async loadBundle(userId: string): Promise<{
@@ -254,6 +330,9 @@ export class ProfileService {
       favoriteArtisanId: profile.favoriteArtisan
         ? publicArtisanId(profile.favoriteArtisan)
         : null,
+      favoriteArtisanIds: profile.favoriteArtisans.map((fa) =>
+        publicArtisanId(fa.artisan),
+      ),
       favoriteProductIds: profile.favoriteProducts.map((fp) =>
         publicProductId(fp.product),
       ),

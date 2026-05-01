@@ -143,10 +143,11 @@ export class HomeService {
   }
 
   async getShopProducts(
-    category: string,
+    category: string | undefined,
     limit: number,
   ): Promise<ShopProductsResponseDto> {
-    await this.homeRepository.findProductsByCategory(category, limit);
+    const selectedCategory = category?.trim().toLowerCase() || 'maroquinerie';
+    await this.homeRepository.findProductsByCategory(selectedCategory, limit);
     const catalog: Record<string, HomeProductDto[]> = {
       maroquinerie: [
         {
@@ -198,8 +199,8 @@ export class HomeService {
       ],
     };
     return {
-      category,
-      items: (catalog[category] ?? []).slice(0, limit),
+      category: selectedCategory,
+      items: (catalog[selectedCategory] ?? []).slice(0, limit),
     };
   }
 

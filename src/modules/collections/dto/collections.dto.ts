@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class CollectionsHeroDto {
   @ApiProperty({ example: 'Le Catalogue Sendiaba' }) badge!: string;
@@ -63,6 +70,21 @@ export class CategoryCatalogQueryDto {
   @IsOptional()
   @IsString()
   sort?: string;
+
+  @ApiProperty({ required: false, example: 24, description: 'Pagination: nombre max de produits retournés' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit?: number;
+
+  @ApiProperty({ required: false, example: 1, description: 'Pagination: page (1-based), utilisé avec limit' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
 }
 
 export class CatalogArtisanFilterDto {
