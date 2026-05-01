@@ -7,7 +7,13 @@ import {
   publicUserId,
 } from '../../common/utils/public-ids.util';
 import { PrismaService } from '../../database/prisma.service';
-import { ArtisanProductsQueryDto, UpsertArtisanProductDto } from './dto/artisan-space.dto';
+import {
+  ArtisanProductsQueryDto,
+  ArtisanPromotionBulkDto,
+  ArtisanPromotionCancelBulkDto,
+  ArtisanStockBulkUpdateDto,
+  UpsertArtisanProductDto,
+} from './dto/artisan-space.dto';
 
 @Injectable()
 export class ArtisanProductsService {
@@ -70,6 +76,7 @@ export class ArtisanProductsService {
         price: dto.price,
         tag: dto.tag,
         inStock: dto.inStock ?? true,
+        stockQuantity: dto.stockQuantity ?? 0,
         details: this.normalizeDetails(dto.details),
         imageUrl,
       },
@@ -104,6 +111,7 @@ export class ArtisanProductsService {
         price: dto.price,
         tag: dto.tag,
         inStock: dto.inStock ?? product.inStock,
+        stockQuantity: dto.stockQuantity ?? product.stockQuantity,
         details: this.normalizeDetails(dto.details, product.details),
         categoryId: category.id,
         subcategoryId: subcategory?.id,
@@ -121,6 +129,67 @@ export class ArtisanProductsService {
     const product = await this.findOwnedProduct(user.id, productId);
     await this.prisma.product.delete({ where: { id: product.id } });
     return { success: true, data: { id: publicProductId(product), deleted: true } };
+  }
+
+  async setPromotionBulk(user: User, dto: ArtisanPromotionBulkDto) {
+    await this.assertArtisan(user.id);
+    const refs = this.toProductRefs(dto.productIds);
+    if (refs.length === 0) {
+      throw new BadRequestException({
+        code: 'INVALID_PRODUCT_ID',
+        message: 'Aucun identifiant produit valide.',
+      });
+    }
+    await this.prisma.product.updateMany({
+      where: { artisanId: user.id, referenceCode: { in: refs } },
+      data: {
+        promotionActive: true,
+        promotionPercent: dto.percent,
+        promotionReason: dto.reason,
+        promotionStartedAt: new Date(),
+        promotionEndedAt: null,
+      },
+    });
+    return { success: true };
+  }
+
+  async cancelPromotionBulk(user: User, dto: ArtisanPromotionCancelBulkDto) {
+    await this.assertArtisan(user.id);
+    const refs = this.toProductRefs(dto.productIds);
+    if (refs.length === 0) {
+      throw new BadRequestException({
+        code: 'INVALID_PRODUCT_ID',
+        message: 'Aucun identifiant produit valide.',
+      });
+    }
+    await this.prisma.product.updateMany({
+      where: { artisanId: user.id, referenceCode: { in: refs } },
+      data: {
+        promotionActive: false,
+        promotionPercent: null,
+        promotionReason: null,
+        promotionEndedAt: new Date(),
+      },
+    });
+    return { success: true };
+  }
+
+  async updateStockBulk(user: User, dto: ArtisanStockBulkUpdateDto) {
+    await this.assertArtisan(user.id);
+    for (const item of dto.items) {
+      const ref = parseProductPublicId(item.productId);
+      if (!ref) {
+        throw new BadRequestException({
+          code: 'INVALID_PRODUCT_ID',
+          message: `Identifiant produit invalide: ${item.productId}`,
+        });
+      }
+      await this.prisma.product.updateMany({
+        where: { artisanId: user.id, referenceCode: ref },
+        data: { stockQuantity: item.stockQuantity, inStock: item.stockQuantity > 0 },
+      });
+    }
+    return { success: true };
   }
 
   private async findOwnedProduct(userId: string, publicId: string) {
@@ -155,6 +224,12 @@ export class ArtisanProductsService {
       imageUrl: string | null;
       inStock: boolean;
       tag: string | null;
+      stockQuantity: number;
+      promotionActive: boolean;
+      promotionPercent: number | null;
+      promotionReason: string | null;
+      promotionStartedAt: Date | null;
+      promotionEndedAt: Date | null;
       category: { slug: string };
       subcategory: { slug: string } | null;
     },
@@ -170,6 +245,12 @@ export class ArtisanProductsService {
       category: p.category.slug,
       subcategory: p.subcategory?.slug ?? null,
       tag: p.tag ?? null,
+      stockQuantity: p.stockQuantity,
+      promotionActive: p.promotionActive,
+      promotionPercent: p.promotionPercent ?? null,
+      promotionReason: p.promotionReason ?? null,
+      promotionStartedAt: p.promotionStartedAt?.toISOString() ?? null,
+      promotionEndedAt: p.promotionEndedAt?.toISOString() ?? null,
     };
   }
 
@@ -218,5 +299,11 @@ export class ArtisanProductsService {
         .filter(Boolean);
     }
     return fallback;
+  }
+
+  private toProductRefs(ids: string[]): string[] {
+    return ids
+      .map((id) => parseProductPublicId(id))
+      .filter((v): v is string => Boolean(v));
   }
 }

@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class PublicContentQueryDto {
-  @ApiProperty({ example: 'cart' })
+  @ApiProperty({ example: 'home', required: false })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  scope!: string;
+  scope?: string;
 }
 
 export class PublicContentResponseDto {

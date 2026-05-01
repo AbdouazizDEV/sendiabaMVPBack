@@ -49,6 +49,13 @@ export class CartService {
     const product = await this.resolveProductByPublicId(productPublicId);
     const cart = await this.loadOrCreateCart(user.id);
 
+    if (quantity > product.stockQuantity) {
+      throw new BadRequestException({
+        code: 'INSUFFICIENT_STOCK',
+        message: 'Stock insuffisant pour ce produit.',
+      });
+    }
+
     if (quantity <= 0) {
       await this.prisma.cartItem.deleteMany({
         where: { cartId: cart.id, productId: product.id },
@@ -89,6 +96,12 @@ export class CartService {
       where: { cartId_productId: { cartId: cart.id, productId: product.id } },
     });
     const nextQty = (existing?.quantity ?? 0) + quantity;
+    if (nextQty > product.stockQuantity) {
+      throw new BadRequestException({
+        code: 'INSUFFICIENT_STOCK',
+        message: 'Stock insuffisant pour ce produit.',
+      });
+    }
 
     await this.prisma.cartItem.upsert({
       where: { cartId_productId: { cartId: cart.id, productId: product.id } },

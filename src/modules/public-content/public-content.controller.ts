@@ -19,11 +19,11 @@ export class PublicContentController {
     description:
       'retourne les entrées effectives (override ou défaut) pour une page (ex: cart)',
   })
-  @ApiQuery({ name: 'scope', required: true, example: 'cart' })
+  @ApiQuery({ name: 'scope', required: false, example: 'home' })
   @ApiOkResponse({ type: PublicContentResponseDto })
   async getByScope(
     @Query() query: PublicContentQueryDto,
   ): Promise<PublicContentResponseDto> {
-    return this.publicContentService.getByScope(query.scope);
+    return this.publicContentService.getByScope(query.scope ?? 'home');
   }
 }

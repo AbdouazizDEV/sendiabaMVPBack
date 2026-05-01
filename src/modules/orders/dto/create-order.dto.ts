@@ -84,3 +84,52 @@ export class CreateOrderSuccessDto {
   @ApiProperty() success!: true;
   @ApiProperty({ type: CreatedOrderDataDto }) data!: CreatedOrderDataDto;
 }
+
+export class CreateCheckoutSessionSuccessDto {
+  @ApiProperty() success!: true;
+  @ApiProperty({
+    example: {
+      reference: 'PAY_1710000000000_ab12cd',
+      paymentUrl: 'https://checkout.dexpay.africa/...',
+      status: 'pending',
+    },
+  })
+  data!: {
+    reference: string;
+    paymentUrl: string;
+    status: 'pending';
+  };
+}
+
+export class OrderTrackingResponseDto {
+  @ApiProperty({
+    example: {
+      orderId: 'cmd_x8a91k2p',
+      timeline: [
+        { status: 'pending', note: 'Commande créée', at: '2026-04-29T20:00:00.000Z' },
+      ],
+    },
+  })
+  data!: {
+    orderId: string;
+    timeline: { status: string; note: string | null; at: string }[];
+  };
+}
+
+export class ClientNotificationsResponseDto {
+  @ApiProperty({
+    example: {
+      items: [
+        {
+          orderId: 'cmd_x8a91k2p',
+          status: 'confirmed',
+          note: 'Commande validée',
+          at: '2026-04-29T20:00:00.000Z',
+        },
+      ],
+    },
+  })
+  data!: {
+    items: { orderId: string; status: string; note: string | null; at: string }[];
+  };
+}

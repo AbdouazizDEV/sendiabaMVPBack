@@ -52,8 +52,12 @@ model User {
   profile         Profile?
   artisanProducts Product[]       @relation("UserProducts")
   favoredByProfiles Profile[]     @relation("FavoriteArtisanUser")
+  favoritedByProfiles ProfileFavoriteArtisan[]
+  artisanNotifications ArtisanNotification[]
+  adminNotifications AdminNotification[] @relation("AdminNotificationRecipient")
   cart          Cart?
   orders        Order[]
+  paymentSessions PaymentSession[]
   refreshTokens RefreshToken[]
 
   @@map("users")
@@ -86,6 +90,7 @@ model Profile {
   yearsExperience   Int?
   favoriteArtisanId String?
   favoriteArtisan   User?     @relation("FavoriteArtisanUser", fields: [favoriteArtisanId], references: [id])
+  favoriteArtisans  ProfileFavoriteArtisan[]
   updatedAt         DateTime @updatedAt
   favoriteProducts  ProfileFavoriteProduct[]
 
@@ -101,6 +106,17 @@ model ProfileFavoriteProduct {
 
   @@id([profileId, productId])
   @@map("profile_favorite_products")
+}
+
+model ProfileFavoriteArtisan {
+  profileId  String
+  artisanId  String
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  artisan    User     @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+  addedAt    DateTime @default(now())
+
+  @@id([profileId, artisanId])
+  @@map("profile_favorite_artisans")
 }
 
 model Category {
@@ -139,6 +155,12 @@ model Product {
   imageUrl      String?
   tag           String?
   inStock       Boolean                 @default(true)
+  stockQuantity Int                     @default(0)
+  promotionActive Boolean               @default(false)
+  promotionPercent Int?
+  promotionReason String?
+  promotionStartedAt DateTime?
+  promotionEndedAt DateTime?
   href          String?
   artisanId     String
   artisan       User                    @relation("UserProducts", fields: [artisanId], references: [id])
@@ -186,6 +208,8 @@ model Order {
   updatedAt DateTime    @updatedAt
   lines     OrderLine[]
   checkout  OrderCheckout?
+  statusEvents OrderStatusEvent[]
+  paymentSessionId String?
 
   @@map("orders")
 }
@@ -219,6 +243,73 @@ model OrderCheckout {
   paymentMethod PaymentMethod @default(MOBILE_MONEY)
 
   @@map("order_checkouts")
+}
+
+model OrderStatusEvent {
+  id          String      @id @default(cuid())
+  orderId      String
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status       OrderStatus
+  note         String?
+  changedById  String?
+  createdAt    DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
+}
+
+model ArtisanNotification {
+  id         String   @id @default(cuid())
+  artisanId  String
+  artisan    User     @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+  orderId    String?
+  type       String
+  title      String
+  message    String
+  payload    Json?
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([artisanId, createdAt])
+  @@index([artisanId, readAt])
+  @@map("artisan_notifications")
+}
+
+model AdminNotification {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation("AdminNotificationRecipient", fields: [adminId], references: [id], onDelete: Cascade)
+  orderId    String?
+  type       String
+  title      String
+  message    String
+  payload    Json?
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@map("admin_notifications")
+}
+
+model PaymentSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        String
+  reference       String   @unique
+  paymentUrl      String?
+  status          String   @default("PENDING")
+  amount          Float
+  currency        String   @default("XOF")
+  checkoutPayload Json
+  providerPayload Json?
+  orderId         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("payment_sessions")
 }
 
 model NewsletterSubscription {

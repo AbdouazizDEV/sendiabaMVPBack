@@ -54,9 +54,10 @@ export class ShopTabsResponseDto {
 }
 
 export class ShopProductsQueryDto {
-  @ApiProperty({ example: 'maroquinerie' })
+  @ApiProperty({ example: 'maroquinerie', required: false })
+  @IsOptional()
   @IsString()
-  category!: string;
+  category?: string;
 
   @ApiProperty({ example: 4, required: false })
   @IsOptional()

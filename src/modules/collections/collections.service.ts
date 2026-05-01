@@ -155,6 +155,13 @@ export class CollectionsService {
       }
     });
 
+    const page = query.page ?? 1;
+    const pageSize = query.limit;
+    const paged =
+      pageSize !== undefined && pageSize > 0
+        ? sorted.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+        : sorted;
+
     const availableArtisansMap = new Map<string, { id: string; name: string }>();
     for (const p of category.products) {
       availableArtisansMap.set(p.artisan.id, {
@@ -182,7 +189,7 @@ export class CollectionsService {
         sort,
       },
       summary: { totalFound: sorted.length },
-      items: sorted.map((p) => ({
+      items: paged.map((p) => ({
         id: publicProductId(p),
         name: p.name,
         price: p.price,

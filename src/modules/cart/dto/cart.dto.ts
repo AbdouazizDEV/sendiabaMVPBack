@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 
 export class CartProductEmbeddedDto {
   @ApiProperty({ example: 'p1' }) id!: string;
@@ -37,7 +37,10 @@ export class CartPatchQuantityDto {
 }
 
 export class AddCartItemDto {
-  @ApiProperty({ example: 'p1' }) productId!: string;
+  @ApiProperty({ example: 'p1' })
+  @IsString()
+  @IsNotEmpty()
+  productId!: string;
 
   @ApiProperty({ example: 1, default: 1 })
   @Type(() => Number)
