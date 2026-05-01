@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Param,
   Post,
   Put,
@@ -34,6 +35,9 @@ import {
   CreateArtisanProductResponseDto,
   DeleteArtisanProductResponseDto,
   ArtisanProductDetailResponseDto,
+  ArtisanPromotionBulkDto,
+  ArtisanPromotionCancelBulkDto,
+  ArtisanStockBulkUpdateDto,
   UpdateArtisanProductResponseDto,
   UpsertArtisanProductDto,
 } from './dto/artisan-space.dto';
@@ -79,6 +83,7 @@ export class ArtisanProductsController {
         price: { type: 'number' },
         tag: { type: 'string', nullable: true },
         inStock: { type: 'boolean' },
+        stockQuantity: { type: 'integer', minimum: 0, default: 0 },
         categorySlug: { type: 'string', example: 'maroquinerie' },
         subcategorySlug: { type: 'string', nullable: true },
         details: { type: 'array', items: { type: 'string' } },
@@ -109,6 +114,7 @@ export class ArtisanProductsController {
         price: { type: 'number' },
         tag: { type: 'string', nullable: true },
         inStock: { type: 'boolean' },
+        stockQuantity: { type: 'integer', minimum: 0, default: 0 },
         categorySlug: { type: 'string', example: 'maroquinerie' },
         subcategorySlug: { type: 'string', nullable: true },
         details: { type: 'array', items: { type: 'string' } },
@@ -132,5 +138,29 @@ export class ArtisanProductsController {
   @ApiOkResponse({ type: DeleteArtisanProductResponseDto })
   async remove(@CurrentUser() user: User, @Param('productId') productId: string) {
     return this.service.remove(user, productId);
+  }
+
+  @Patch('promotion')
+  @ApiOperation({ summary: 'Appliquer une promotion à un ou plusieurs produits' })
+  @ApiBody({ type: ArtisanPromotionBulkDto })
+  async setPromotion(@CurrentUser() user: User, @Body() dto: ArtisanPromotionBulkDto) {
+    return this.service.setPromotionBulk(user, dto);
+  }
+
+  @Patch('promotion/cancel')
+  @ApiOperation({ summary: 'Annuler la promotion sur un ou plusieurs produits' })
+  @ApiBody({ type: ArtisanPromotionCancelBulkDto })
+  async cancelPromotion(
+    @CurrentUser() user: User,
+    @Body() dto: ArtisanPromotionCancelBulkDto,
+  ) {
+    return this.service.cancelPromotionBulk(user, dto);
+  }
+
+  @Patch('stock')
+  @ApiOperation({ summary: 'Mettre à jour le stock de plusieurs produits' })
+  @ApiBody({ type: ArtisanStockBulkUpdateDto })
+  async updateStock(@CurrentUser() user: User, @Body() dto: ArtisanStockBulkUpdateDto) {
+    return this.service.updateStockBulk(user, dto);
   }
 }

@@ -8,6 +8,44 @@ import type {
   IOrdersRepository,
 } from './orders.repository.interface';
 
+const orderBundleSelect = {
+  id: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  user: {
+    select: { id: true, referenceCode: true, displayName: true, email: true },
+  },
+  checkout: {
+    select: {
+      fullName: true,
+      phone: true,
+      country: true,
+      city: true,
+      district: true,
+      addressLine: true,
+      postalCode: true,
+      notes: true,
+      paymentMethod: true,
+    },
+  },
+  lines: {
+    select: {
+      productId: true,
+      productName: true,
+      productImage: true,
+      unitPrice: true,
+      quantity: true,
+      product: {
+        select: {
+          referenceCode: true,
+          artisanId: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.OrderSelect;
+
 const cartInclude = {
   items: {
     include: {
@@ -40,41 +78,44 @@ export class OrdersPrismaRepository implements IOrdersRepository {
         return null;
       }
 
-      const order = await tx.order.create({
+      const orderId = `ord_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      await tx.$executeRawUnsafe(
+        `INSERT INTO orders (id, "userId", status, "createdAt", "updatedAt")
+         VALUES ($1, $2, $3::"OrderStatus", NOW(), NOW())`,
+        orderId,
+        userId,
+        'PENDING',
+      );
+
+      await tx.orderLine.createMany({
+        data: cart.items.map((item) => ({
+          orderId,
+          productId: item.productId,
+          productName: item.product.name,
+          productImage: item.product.imageUrl,
+          unitPrice: item.product.price,
+          quantity: item.quantity,
+        })),
+      });
+
+      await tx.orderCheckout.create({
         data: {
-          userId,
-          lines: {
-            create: cart.items.map((item) => ({
-              productId: item.productId,
-              productName: item.product.name,
-              productImage: item.product.imageUrl,
-              unitPrice: item.product.price,
-              quantity: item.quantity,
-            })),
-          },
-          checkout: {
-            create: {
-              fullName: checkout.fullName,
-              phone: checkout.phone,
-              country: checkout.country,
-              city: checkout.city,
-              district: checkout.district,
-              addressLine: checkout.addressLine,
-              postalCode: checkout.postalCode,
-              notes: checkout.notes,
-              paymentMethod: checkout.paymentMethod,
-            },
-          },
+          orderId,
+          fullName: checkout.fullName,
+          phone: checkout.phone,
+          country: checkout.country,
+          city: checkout.city,
+          district: checkout.district,
+          addressLine: checkout.addressLine,
+          postalCode: checkout.postalCode,
+          notes: checkout.notes,
+          paymentMethod: checkout.paymentMethod,
         },
-        include: {
-          lines: {
-            include: {
-              product: true,
-            },
-          },
-          checkout: true,
-          user: true,
-        },
+      });
+
+      const order = await tx.order.findUniqueOrThrow({
+        where: { id: orderId },
+        select: orderBundleSelect,
       });
 
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
@@ -95,15 +136,7 @@ export class OrdersPrismaRepository implements IOrdersRepository {
           ...(publicSuffix ? [{ id: { endsWith: publicSuffix } }] : []),
         ],
       },
-      include: {
-        lines: {
-          include: {
-            product: true,
-          },
-        },
-        checkout: true,
-        user: true,
-      },
+      select: orderBundleSelect,
     });
   }
 }
