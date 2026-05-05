@@ -1,6 +1,14 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createTransport, type Transporter } from 'nodemailer';
+import type { Transporter } from 'nodemailer';
+import {
+  createConfiguredSmtpTransport,
+  formatSmtpSendError,
+} from '../../../common/mail/smtp-transport.util';
 
 @Injectable()
 export class AuthMailService {
@@ -19,7 +27,10 @@ export class AuthMailService {
       this.configService.get<string>('SMTP_FROM') ??
       'no-reply@sendiaba.com';
     const transporter = this.getTransporter();
-    const html = this.buildTemplate(payload.displayName, payload.verificationLink);
+    const html = this.buildTemplate(
+      payload.displayName,
+      payload.verificationLink,
+    );
 
     try {
       await transporter.sendMail({
@@ -29,7 +40,9 @@ export class AuthMailService {
         html,
       });
     } catch (error) {
-      this.logger.error('Failed to send welcome validation email', error as Error);
+      this.logger.error(
+        `Failed to send welcome validation email: ${formatSmtpSendError(error)}`,
+      );
       throw new InternalServerErrorException({
         code: 'EMAIL_SEND_FAILED',
         message: "Impossible d'envoyer l'email de validation.",
@@ -42,25 +55,15 @@ export class AuthMailService {
       return this.transporter;
     }
 
-    const host = this.configService.get<string>('SMTP_HOST');
-    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-
-    if (!host || !user || !pass) {
+    try {
+      this.transporter = createConfiguredSmtpTransport(this.configService);
+    } catch {
       throw new InternalServerErrorException({
         code: 'EMAIL_CONFIG_MISSING',
         message:
           'Configuration SMTP manquante. Définissez SMTP_HOST, SMTP_PORT, SMTP_USER et SMTP_PASS.',
       });
     }
-
-    this.transporter = createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-    });
     return this.transporter;
   }
 
