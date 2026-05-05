@@ -102,9 +102,45 @@ export function buildSmtpTransportOptions(
   };
 }
 
+/**
+ * En production, Gmail refuse parfois STARTTLS sur 587 depuis des IP de cloud (Render).
+ * Le profil officiel nodemailer « Gmail » utilise smtp.gmail.com:465 + TLS implicite.
+ * En local on garde SMTP_HOST / SMTP_PORT du .env (souvent 587).
+ *
+ * Désactiver : SMTP_GMAIL_PRESET=false
+ * Forcer même en dev : SMTP_GMAIL_PRESET=true
+ */
 export function createConfiguredSmtpTransport(
   config: ConfigService,
 ): Transporter {
+  const host = config.get<string>('SMTP_HOST')?.trim();
+  const user = config.get<string>('SMTP_USER')?.trim();
+  const passRaw = config.get<string>('SMTP_PASS')?.trim() ?? '';
+  const pass = normalizeSmtpPassword(host, passRaw);
+  const nodeEnv = config.get<string>('NODE_ENV');
+  const presetEnv = config.get<string>('SMTP_GMAIL_PRESET')?.trim().toLowerCase();
+
+  const useGmailServicePreset =
+    host &&
+    isGmailSmtpHost(host) &&
+    !!user &&
+    !!pass &&
+    presetEnv !== 'false' &&
+    presetEnv !== '0' &&
+    (presetEnv === 'true' ||
+      presetEnv === '1' ||
+      nodeEnv === 'production');
+
+  if (useGmailServicePreset) {
+    return createTransport({
+      service: 'Gmail',
+      auth: { user, pass },
+      connectionTimeout: 20_000,
+      greetingTimeout: 20_000,
+      socketTimeout: 30_000,
+    });
+  }
+
   return createTransport(buildSmtpTransportOptions(config));
 }
 
