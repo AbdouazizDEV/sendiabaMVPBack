@@ -15,6 +15,18 @@ import type { PaymentProvidersQueryDto } from './dto/dexpay.dto';
 export class DexpayService {
   constructor(private readonly config: ConfigService) {}
 
+  private async parseJsonResponse(
+    response: Response,
+  ): Promise<Record<string, unknown>> {
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { raw: text.slice(0, 700) };
+    }
+  }
+
   private baseUrl(): string {
     return this.config.get<string>('DEXPAY_API_URL', 'https://api.dexpay.africa/api/v1');
   }
@@ -69,7 +81,6 @@ export class DexpayService {
         item_name: payload.itemName,
         amount: amountXof,
         currency: 'XOF',
-        countryISO: 'SN',
         webhook_url: payload.webhookUrl,
         success_url: payload.successUrl,
         failure_url: payload.failureUrl,
@@ -77,7 +88,7 @@ export class DexpayService {
       }),
     });
 
-    const raw = (await response.json()) as Record<string, unknown>;
+    const raw = await this.parseJsonResponse(response);
     const rawData =
       raw.data && typeof raw.data === 'object'
         ? (raw.data as Record<string, unknown>)
@@ -110,34 +121,58 @@ export class DexpayService {
     const params = new URLSearchParams();
     if (query.page !== undefined) params.set('page', String(query.page));
     if (query.limit !== undefined) params.set('limit', String(query.limit));
-    if (query.country?.trim()) {
-      params.set('filters[provider_country]', query.country.trim());
-    }
-    if (query.status) {
-      params.set('filters[provider_status]', query.status);
-    }
-    if (query.type) {
-      params.set('filters[provider_type]', query.type);
-    }
-    const qs = params.toString();
-    const url = `${baseUrl}/payment-providers${qs ? `?${qs}` : ''}`;
+    const url = `${baseUrl}/payment-providers${params.size ? `?${params.toString()}` : ''}`;
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-        'x-api-secret': apiSecret,
-      },
+      headers: { 'x-api-key': apiKey, 'x-api-secret': apiSecret },
     });
+    const raw = await this.parseJsonResponse(response);
+    if (response.ok) {
+      const data = Array.isArray(raw.data) ? raw.data : [];
+      const hasCustomFilters = Boolean(
+        query.country?.trim() || query.status || query.type,
+      );
+      if (!hasCustomFilters) return raw;
 
-    const raw = (await response.json()) as Record<string, unknown>;
-    if (!response.ok) {
-      throw new InternalServerErrorException({
-        code: 'DEXPAY_PAYMENT_PROVIDERS_FAILED',
-        message: 'Impossible de récupérer les moyens de paiement DEXPAY.',
+      const filtered = data.filter((entry) => {
+        if (!entry || typeof entry !== 'object') return false;
+        const provider = entry as Record<string, unknown>;
+        if (
+          query.country?.trim() &&
+          String(provider.provider_country ?? '').toUpperCase() !==
+            query.country.trim().toUpperCase()
+        ) {
+          return false;
+        }
+        if (
+          query.status &&
+          String(provider.provider_status ?? '').toLowerCase() !== query.status
+        ) {
+          return false;
+        }
+        if (query.type && String(provider.provider_type ?? '') !== query.type) {
+          return false;
+        }
+        return true;
       });
+
+      return {
+        ...raw,
+        data: filtered,
+        hasNextPage: false,
+      };
     }
-    return raw;
+
+    const detail =
+      typeof raw.message === 'string'
+        ? raw.message
+        : [raw.error, raw.code].filter(Boolean).join(' — ') ||
+          'réponse DEXPAY invalide';
+    throw new InternalServerErrorException({
+      code: 'DEXPAY_PAYMENT_PROVIDERS_FAILED',
+      message: `Impossible de récupérer les moyens de paiement DEXPAY: ${detail}`,
+    });
   }
 
   /**
@@ -175,7 +210,7 @@ export class DexpayService {
       },
     );
 
-    const raw = (await response.json()) as Record<string, unknown>;
+    const raw = await this.parseJsonResponse(response);
     if (!response.ok) {
       const msg =
         typeof raw.message === 'string'

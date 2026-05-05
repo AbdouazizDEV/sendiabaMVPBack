@@ -40,6 +40,17 @@ function isLocalhostUrl(url: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(url.trim());
 }
 
+function requirePublicUrl(url: string, code: string, label: string): string {
+  const trimmed = url.trim();
+  if (!trimmed || isLocalhostUrl(trimmed)) {
+    throw new InternalServerErrorException({
+      code,
+      message: `DEXPAY refuse les URLs localhost pour ${label}. Définissez une URL HTTPS publique (déploiement ou tunnel).`,
+    });
+  }
+  return trimmed;
+}
+
 /**
  * DEXPAY (SN) attend un numéro local sur 9 chiffres.
  * Exemples: +221771234567 / 221771234567 / 77 123 45 67 -> 771234567
@@ -91,29 +102,33 @@ export class OrdersService {
     const frontendBase = stripTrailingSlash(
       process.env.FRONTEND_HOME_URL ?? process.env.FRONTEND_URL ?? '',
     );
-    const successUrl = stripTrailingSlash(
+    const rawSuccessUrl = stripTrailingSlash(
       process.env.DEXPAY_SUCCESS_URL ??
         process.env.FRONTEND_SUCCESS_URL ??
         (frontendBase ? `${frontendBase}/checkout/success` : 'http://localhost:3000/checkout/success'),
     );
-    const failureUrl = stripTrailingSlash(
+    const rawFailureUrl = stripTrailingSlash(
       process.env.DEXPAY_FAILURE_URL ??
         process.env.FRONTEND_FAILURE_URL ??
         (frontendBase ? `${frontendBase}/checkout/failure` : 'http://localhost:3000/checkout/failure'),
     );
     const apiBaseCandidate =
       process.env.API_PUBLIC_URL ?? process.env.RENDER_EXTERNAL_URL ?? '';
-    const apiBase =
-      apiBaseCandidate && !isLocalhostUrl(apiBaseCandidate)
-        ? stripTrailingSlash(apiBaseCandidate)
-        : '';
-    if (!apiBase) {
-      throw new InternalServerErrorException({
-        code: 'DEXPAY_PUBLIC_API_URL_REQUIRED',
-        message:
-          'DEXPAY refuse les URLs en localhost pour webhook_url. Définissez API_PUBLIC_URL avec l’URL HTTPS publique de cette API (ex. déploiement ou tunnel ngrok), suffixe /api/v1 inclus.',
-      });
-    }
+    const successUrl = requirePublicUrl(
+      rawSuccessUrl,
+      'DEXPAY_SUCCESS_URL_REQUIRED',
+      'success_url',
+    );
+    const failureUrl = requirePublicUrl(
+      rawFailureUrl,
+      'DEXPAY_FAILURE_URL_REQUIRED',
+      'failure_url',
+    );
+    const apiBase = requirePublicUrl(
+      stripTrailingSlash(apiBaseCandidate),
+      'DEXPAY_PUBLIC_API_URL_REQUIRED',
+      'webhook_url',
+    );
     const webhookUrl = `${apiBase}/orders/webhooks/dexpay`;
 
     const session = await this.dexpay.createCheckoutSession({
