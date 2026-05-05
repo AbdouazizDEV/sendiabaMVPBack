@@ -1,6 +1,10 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createTransport, type Transporter } from 'nodemailer';
+import type { Transporter } from 'nodemailer';
+import {
+  createConfiguredSmtpTransport,
+  formatSmtpSendError,
+} from '../../common/mail/smtp-transport.util';
 
 @Injectable()
 export class ArtisanMailService {
@@ -30,7 +34,9 @@ export class ArtisanMailService {
         html,
       });
     } catch (error) {
-      this.logger.error('Failed to send artisan order progress email', error as Error);
+      this.logger.error(
+        `Failed to send artisan order progress email: ${formatSmtpSendError(error)}`,
+      );
       throw new InternalServerErrorException({
         code: 'EMAIL_SEND_FAILED',
         message: "Impossible d'envoyer l'email de suivi de commande.",
@@ -40,23 +46,15 @@ export class ArtisanMailService {
 
   private getTransporter(): Transporter {
     if (this.transporter) return this.transporter;
-    const host = this.configService.get<string>('SMTP_HOST');
-    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-    if (!host || !user || !pass) {
+    try {
+      this.transporter = createConfiguredSmtpTransport(this.configService);
+    } catch {
       throw new InternalServerErrorException({
         code: 'EMAIL_CONFIG_MISSING',
         message:
           'Configuration SMTP manquante. Définissez SMTP_HOST, SMTP_PORT, SMTP_USER et SMTP_PASS.',
       });
     }
-    this.transporter = createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-    });
     return this.transporter;
   }
 
