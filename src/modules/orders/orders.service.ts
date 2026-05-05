@@ -283,8 +283,14 @@ export class OrdersService {
     return { success: true, data: this.toOrderData(created, subtotal, shippingFee) };
   }
 
-  async confirmDexpayWebhook(payload: Record<string, unknown>) {
-    const data = (payload.data as Record<string, unknown> | undefined) ?? payload;
+  async confirmDexpayWebhook(payload: unknown) {
+    const safePayload =
+      payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+    const nestedData = safePayload.data;
+    const data =
+      nestedData && typeof nestedData === 'object'
+        ? (nestedData as Record<string, unknown>)
+        : safePayload;
     const reference = String(data.reference ?? '');
     const status = String(data.status ?? '').toLowerCase();
     if (!reference) {
