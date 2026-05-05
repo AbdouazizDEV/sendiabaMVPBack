@@ -4,6 +4,7 @@ import type { Transporter } from 'nodemailer';
 import {
   createConfiguredSmtpTransport,
   formatSmtpSendError,
+  resolveSmtpMailFrom,
 } from '../../common/mail/smtp-transport.util';
 
 @Injectable()
@@ -21,10 +22,7 @@ export class ArtisanMailService {
     message?: string;
   }): Promise<void> {
     const transporter = this.getTransporter();
-    const from =
-      this.configService.get<string>('MAIL_FROM') ??
-      this.configService.get<string>('SMTP_FROM') ??
-      'no-reply@sendiaba.com';
+    const from = resolveSmtpMailFrom(this.configService);
     const html = this.buildTemplate(payload);
     try {
       await transporter.sendMail({
