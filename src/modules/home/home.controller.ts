@@ -132,7 +132,8 @@ export class HomeController {
   @Get('artisans')
   @ApiOperation({
     summary: 'Artisans',
-    description: 'retourne les artisans mis en avant sur la homepage',
+    description:
+      'artisans mis en avant : configurés par admin (PUT /backoffice/homepage/featured-artisans) ; sinon contenu par défaut / content_entries',
   })
   @ApiOkResponse({ type: HomeArtisansResponseDto })
   async artisans(): Promise<HomeArtisansResponseDto> {

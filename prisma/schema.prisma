@@ -59,6 +59,7 @@ model User {
   orders        Order[]
   paymentSessions PaymentSession[]
   refreshTokens RefreshToken[]
+  homepageFeaturedArtisan HomepageFeaturedArtisan?
 
   @@map("users")
 }
@@ -382,4 +383,16 @@ model PressItem {
   order Int    @default(0)
 
   @@map("press_items")
+}
+
+/// Artisans affichés sur la section « Artisans » de la homepage (ordre = sortOrder).
+model HomepageFeaturedArtisan {
+  id         String   @id @default(cuid())
+  artisanId  String   @unique
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  artisan    User     @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+
+  @@index([sortOrder])
+  @@map("homepage_featured_artisans")
 }

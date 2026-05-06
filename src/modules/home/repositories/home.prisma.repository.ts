@@ -10,7 +10,11 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
-import { HomeProduct, IHomeRepository } from './home.repository.interface';
+import {
+  HomeProduct,
+  HomepageFeaturedArtisanRow,
+  IHomeRepository,
+} from './home.repository.interface';
 
 @Injectable()
 export class HomePrismaRepository implements IHomeRepository {
@@ -56,6 +60,38 @@ export class HomePrismaRepository implements IHomeRepository {
       select: { id: true, referenceCode: true, displayName: true },
       take: limit,
     });
+  }
+
+  async findHomepageFeaturedArtisans(): Promise<HomepageFeaturedArtisanRow[]> {
+    const rows = await this.prisma.homepageFeaturedArtisan.findMany({
+      where: { artisan: { role: UserRole.ARTISAN } },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        artisan: {
+          select: {
+            id: true,
+            referenceCode: true,
+            displayName: true,
+            profile: {
+              select: {
+                city: true,
+                craft: true,
+                speciality: true,
+                heritage: true,
+                quote: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.artisan.id,
+      referenceCode: r.artisan.referenceCode,
+      displayName: r.artisan.displayName,
+      profile: r.artisan.profile,
+    }));
   }
 
   async findStats(): Promise<Stats[]> {
