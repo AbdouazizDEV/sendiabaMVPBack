@@ -9,6 +9,7 @@ import { BackofficeContentModule } from './modules/backoffice/content/backoffice
 import { BackofficeDashboardModule } from './modules/backoffice/dashboard/backoffice-dashboard.module';
 import { BackofficeArtisansModule } from './modules/backoffice/artisans/backoffice-artisans.module';
 import { BackofficeUsersModule } from './modules/backoffice/users/backoffice-users.module';
+import { BackofficeCategoriesModule } from './modules/backoffice/categories/backoffice-categories.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { CollectionsModule } from './modules/collections/collections.module';
@@ -39,6 +40,7 @@ import { ArtisanSpaceModule } from './modules/artisan-space/artisan-space.module
     BackofficeDashboardModule,
     BackofficeContentModule,
     BackofficeUsersModule,
+    BackofficeCategoriesModule,
   ],
   controllers: [HealthController],
   providers: [
