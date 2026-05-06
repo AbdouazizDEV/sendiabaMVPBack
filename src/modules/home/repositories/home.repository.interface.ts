@@ -14,6 +14,21 @@ export interface HomeProduct extends Product {
   artisan: Pick<User, 'id' | 'referenceCode' | 'displayName'>;
 }
 
+/** Ligne artisan + profil pour la section homepage (ordre conservé). */
+export interface HomepageFeaturedArtisanRow {
+  id: string;
+  referenceCode: string;
+  displayName: string;
+  profile: {
+    city: string | null;
+    craft: string | null;
+    speciality: string | null;
+    heritage: string | null;
+    quote: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
 export interface IHomeRepository {
   findHero(): Promise<HomepageHero | null>;
   findBrandTicker(): Promise<BrandTicker | null>;
@@ -22,6 +37,7 @@ export interface IHomeRepository {
   findFeaturedProducts(limit: number): Promise<HomeProduct[]>;
   findPromoBanner(): Promise<PromoBanner | null>;
   findArtisans(limit: number): Promise<Array<Pick<User, 'id' | 'referenceCode' | 'displayName'>>>;
+  findHomepageFeaturedArtisans(): Promise<HomepageFeaturedArtisanRow[]>;
   findStats(): Promise<Stats[]>;
   findPress(): Promise<PressItem[]>;
   findContentEntriesByScope(scope: string): Promise<ContentEntry[]>;

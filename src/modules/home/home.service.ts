@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { formatArtisanLocation } from '../../common/utils/artisan-location.util';
+import { publicArtisanId } from '../../common/utils/public-ids.util';
 import {
   BrandTickerDto,
   EditorialResponseDto,
@@ -311,14 +313,40 @@ export class HomeService {
   }
 
   async getArtisans(): Promise<HomeArtisansResponseDto> {
-    await this.homeRepository.findArtisans(8);
     const get = await this.scopeContentGetter('home');
+    const title = get('home.artisans.title', 'Derriere chaque objet, une lignee.');
+    const subtitle = get(
+      'home.artisans.subtitle',
+      "Le vrai luxe reside dans l'humanite de la creation...",
+    );
+
+    const featured = await this.homeRepository.findHomepageFeaturedArtisans();
+    if (featured.length > 0) {
+      return {
+        title,
+        subtitle,
+        items: featured.map((row) => {
+          const pubId = publicArtisanId(row);
+          const city = row.profile?.city ?? '';
+          return {
+            id: pubId,
+            name: row.displayName,
+            title: row.profile?.speciality ?? row.profile?.craft ?? 'Artisan',
+            location: city ? formatArtisanLocation(city) : 'Afrique',
+            heritage: row.profile?.heritage ?? '',
+            quote: row.profile?.quote ?? '',
+            imageUrl:
+              row.profile?.avatarUrl ??
+              `https://cdn.sendiaba.com/artisans/${pubId}.png`,
+          };
+        }),
+      };
+    }
+
+    await this.homeRepository.findArtisans(8);
     return {
-      title: get('home.artisans.title', 'Derriere chaque objet, une lignee.'),
-      subtitle: get(
-        'home.artisans.subtitle',
-        "Le vrai luxe reside dans l'humanite de la creation...",
-      ),
+      title,
+      subtitle,
       items: [
         {
           id: 'a1',
