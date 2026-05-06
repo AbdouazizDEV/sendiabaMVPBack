@@ -53,7 +53,7 @@ export class HomeController {
     description: 'retourne les arguments de confiance de la homepage',
   })
   @ApiOkResponse({ type: TrustBarDto })
-  trustBar(): TrustBarDto {
+  async trustBar(): Promise<TrustBarDto> {
     return this.homeService.getTrustBar();
   }
 
@@ -63,7 +63,7 @@ export class HomeController {
     description: 'retourne le manifeste editorial de la marque',
   })
   @ApiOkResponse({ type: ManifestoDto })
-  manifesto(): ManifestoDto {
+  async manifesto(): Promise<ManifestoDto> {
     return this.homeService.getManifesto();
   }
 
@@ -83,7 +83,7 @@ export class HomeController {
     description: "retourne les tabs de navigation de la section boutique",
   })
   @ApiOkResponse({ type: ShopTabsResponseDto })
-  shopTabs(): ShopTabsResponseDto {
+  async shopTabs(): Promise<ShopTabsResponseDto> {
     return this.homeService.getShopTabs();
   }
 
@@ -115,7 +115,7 @@ export class HomeController {
     description: 'retourne les deux blocs editoriaux homepage',
   })
   @ApiOkResponse({ type: EditorialResponseDto })
-  editorial(): EditorialResponseDto {
+  async editorial(): Promise<EditorialResponseDto> {
     return this.homeService.getEditorial();
   }
 
@@ -125,7 +125,7 @@ export class HomeController {
     description: 'retourne la section storytelling savoir-faire',
   })
   @ApiOkResponse({ type: SavoirFaireDto })
-  savoirFaire(): SavoirFaireDto {
+  async savoirFaire(): Promise<SavoirFaireDto> {
     return this.homeService.getSavoirFaire();
   }
 
@@ -175,7 +175,7 @@ export class HomeController {
     description: 'retourne le contenu de la section newsletter homepage',
   })
   @ApiOkResponse({ type: NewsletterContentDto })
-  newsletter(): NewsletterContentDto {
+  async newsletter(): Promise<NewsletterContentDto> {
     return this.homeService.getNewsletter();
   }
 }

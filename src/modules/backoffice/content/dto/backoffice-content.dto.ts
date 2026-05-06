@@ -79,6 +79,21 @@ export class UpdateContentEntryBodyDto {
   @ApiProperty()
   @IsString()
   value!: string;
+
+  @ApiProperty({ required: false, example: 'home' })
+  @IsOptional()
+  @IsString()
+  scope?: string;
+
+  @ApiProperty({ required: false, example: 'Hero - background image' })
+  @IsOptional()
+  @IsString()
+  label?: string;
+
+  @ApiProperty({ required: false, example: 'https://cdn.sendiaba.com/home/hero.png' })
+  @IsOptional()
+  @IsString()
+  defaultValue?: string;
 }
 
 export class UpdateContentEntryResponseDto {
@@ -108,6 +123,9 @@ export class ClearOverrideResponseDto {
 export class BulkContentItemDto {
   @ApiProperty() @IsString() key!: string;
   @ApiProperty() @IsString() value!: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() scope?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() label?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() defaultValue?: string;
 }
 
 export class BulkContentBodyDto {

@@ -19,6 +19,14 @@ export interface IBackofficeContentRepository {
     key: string,
     data: { overrideValue: string | null; updatedById: string | null },
   ): Promise<ContentEntry>;
+  upsertByKey(data: {
+    key: string;
+    scope: string;
+    label: string;
+    defaultValue: string;
+    overrideValue: string | null;
+    updatedById: string | null;
+  }): Promise<ContentEntry>;
 }
 
 export const BACKOFFICE_CONTENT_REPOSITORY = Symbol('IBackofficeContentRepository');

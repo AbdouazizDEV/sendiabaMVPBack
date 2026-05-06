@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ContentEntry, User, UserRole } from '@prisma/client';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import {
   BACKOFFICE_CONTENT_REPOSITORY,
   type ContentEntryWithUpdater,
@@ -23,6 +24,7 @@ export class BackofficeContentService {
   constructor(
     @Inject(BACKOFFICE_CONTENT_REPOSITORY)
     private readonly contentRepository: IBackofficeContentRepository,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async list(query: ContentEntriesQueryDto): Promise<ContentEntriesListResponseDto> {
@@ -66,11 +68,7 @@ export class BackofficeContentService {
     dto: UpdateContentEntryBodyDto,
     actor: User,
   ): Promise<UpdateContentEntryResponseDto> {
-    await this.ensureKeyExists(key);
-    const updated = await this.contentRepository.updateByKey(key, {
-      overrideValue: dto.value,
-      updatedById: actor.id,
-    });
+    const updated = await this.upsertEntry(key, dto.value, actor, dto);
     return {
       success: true,
       message: 'Contenu mis a jour.',
@@ -112,11 +110,7 @@ export class BackofficeContentService {
   ): Promise<BulkContentResponseDto> {
     const results: { key: string; updatedAt: string }[] = [];
     for (const item of dto.items) {
-      await this.ensureKeyExists(item.key);
-      const updated = await this.contentRepository.updateByKey(item.key, {
-        overrideValue: item.value,
-        updatedById: actor.id,
-      });
+      const updated = await this.upsertEntry(item.key, item.value, actor, item);
       results.push({
         key: updated.key,
         updatedAt: updated.updatedAt.toISOString(),
@@ -126,6 +120,29 @@ export class BackofficeContentService {
       success: true,
       updatedCount: results.length,
       items: results,
+    };
+  }
+
+  async uploadImageAndUpdate(
+    key: string,
+    file: Express.Multer.File,
+    actor: User,
+    meta?: { scope?: string; label?: string; defaultValue?: string },
+  ): Promise<UpdateContentEntryResponseDto> {
+    const uploaded = await this.cloudinary.uploadImageBuffer(file.buffer, {
+      folder: 'content',
+      publicId: key.replace(/[^a-zA-Z0-9._-]/g, '_'),
+    });
+    const updated = await this.upsertEntry(key, uploaded.secureUrl, actor, meta);
+    return {
+      success: true,
+      message: 'Image uploadée et contenu mis à jour.',
+      data: {
+        key: updated.key,
+        overrideValue: updated.overrideValue,
+        effectiveValue: this.effectiveValue(updated),
+        updatedAt: updated.updatedAt.toISOString(),
+      },
     };
   }
 
@@ -177,6 +194,38 @@ export class BackofficeContentService {
 
   private effectiveValue(row: ContentEntry): string {
     return row.overrideValue ?? row.defaultValue;
+  }
+
+  private defaultScopeFromKey(key: string): string {
+    const [scope] = key.split('.');
+    return scope?.trim() || 'global';
+  }
+
+  private labelFromKey(key: string): string {
+    return key.replace(/\./g, ' / ');
+  }
+
+  private async upsertEntry(
+    key: string,
+    value: string,
+    actor: User,
+    meta?: { scope?: string; label?: string; defaultValue?: string },
+  ): Promise<ContentEntry> {
+    const existing = await this.contentRepository.findByKey(key);
+    if (existing) {
+      return this.contentRepository.updateByKey(key, {
+        overrideValue: value,
+        updatedById: actor.id,
+      });
+    }
+    return this.contentRepository.upsertByKey({
+      key,
+      scope: meta?.scope?.trim() || this.defaultScopeFromKey(key),
+      label: meta?.label?.trim() || this.labelFromKey(key),
+      defaultValue: meta?.defaultValue ?? '',
+      overrideValue: value,
+      updatedById: actor.id,
+    });
   }
 
   private toPublicUserId(user: {

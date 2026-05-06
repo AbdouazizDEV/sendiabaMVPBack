@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   BrandTicker,
   Category,
+  ContentEntry,
   HomepageHero,
   PressItem,
   PromoBanner,
@@ -63,5 +64,11 @@ export class HomePrismaRepository implements IHomeRepository {
 
   async findPress(): Promise<PressItem[]> {
     return this.prisma.pressItem.findMany({ orderBy: { order: 'asc' } });
+  }
+
+  async findContentEntriesByScope(scope: string): Promise<ContentEntry[]> {
+    return this.prisma.contentEntry.findMany({
+      where: { scope },
+    });
   }
 }

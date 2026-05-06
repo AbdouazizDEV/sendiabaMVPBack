@@ -59,6 +59,31 @@ export class BackofficeContentPrismaRepository
     });
   }
 
+  async upsertByKey(data: {
+    key: string;
+    scope: string;
+    label: string;
+    defaultValue: string;
+    overrideValue: string | null;
+    updatedById: string | null;
+  }): Promise<ContentEntry> {
+    return this.prisma.contentEntry.upsert({
+      where: { key: data.key },
+      update: {
+        overrideValue: data.overrideValue,
+        updatedById: data.updatedById,
+      },
+      create: {
+        key: data.key,
+        scope: data.scope,
+        label: data.label,
+        defaultValue: data.defaultValue,
+        overrideValue: data.overrideValue,
+        updatedById: data.updatedById,
+      },
+    });
+  }
+
   private buildWhere(
     filters: Pick<ContentEntryListFilters, 'scope' | 'search'>,
   ): Prisma.ContentEntryWhereInput {

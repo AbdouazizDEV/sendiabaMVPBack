@@ -1,6 +1,7 @@
 import {
   BrandTicker,
   Category,
+  ContentEntry,
   HomepageHero,
   PressItem,
   Product,
@@ -23,6 +24,7 @@ export interface IHomeRepository {
   findArtisans(limit: number): Promise<Array<Pick<User, 'id' | 'referenceCode' | 'displayName'>>>;
   findStats(): Promise<Stats[]>;
   findPress(): Promise<PressItem[]>;
+  findContentEntriesByScope(scope: string): Promise<ContentEntry[]>;
 }
 
 export const HOME_REPOSITORY = Symbol('IHomeRepository');

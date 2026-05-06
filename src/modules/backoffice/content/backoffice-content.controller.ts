@@ -5,13 +5,18 @@ import {
   Get,
   HttpCode,
   Param,
+  Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -34,6 +39,7 @@ import {
   UpdateContentEntryResponseDto,
 } from './dto/backoffice-content.dto';
 import { BackofficeContentService } from './backoffice-content.service';
+import { memoryStorage } from 'multer';
 
 @ApiTags('Backoffice Content')
 @ApiBearerAuth()
@@ -121,5 +127,46 @@ export class BackofficeContentController {
     @Param('key') key: string,
   ): Promise<ClearOverrideResponseDto> {
     return this.backofficeContentService.clearOverride(decodeURIComponent(key));
+  }
+
+  @Post(':key/image')
+  @HttpCode(200)
+  @ApiParam({ name: 'key', example: 'home.hero.backgroundImageUrl' })
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Uploader une image et mettre a jour une entree',
+    description:
+      "upload multipart/form-data puis enregistre l'URL finale dans overrideValue.",
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        scope: { type: 'string', example: 'home' },
+        label: { type: 'string', example: 'Hero background image' },
+        defaultValue: { type: 'string', example: 'https://cdn.sendiaba.com/home/hero.png' },
+      },
+    },
+  })
+  @ApiOkResponse({ type: UpdateContentEntryResponseDto })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async uploadImage(
+    @Param('key') key: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { scope?: string; label?: string; defaultValue?: string },
+    @CurrentUser() user: User,
+  ): Promise<UpdateContentEntryResponseDto> {
+    return this.backofficeContentService.uploadImageAndUpdate(
+      decodeURIComponent(key),
+      file,
+      user,
+      body,
+    );
   }
 }
