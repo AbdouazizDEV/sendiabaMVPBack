@@ -2,6 +2,10 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import type { Transporter } from 'nodemailer';
 import {
+  formatResendError,
+  sendEmailViaResend,
+} from '../../common/mail/resend-mail.util';
+import {
   createConfiguredSmtpTransport,
   formatSmtpSendError,
   resolveSmtpMailFrom,
@@ -21,14 +25,36 @@ export class ArtisanMailService {
     status: string;
     message?: string;
   }): Promise<void> {
-    const transporter = this.getTransporter();
     const from = resolveSmtpMailFrom(this.configService);
     const html = this.buildTemplate(payload);
+    const subject = `Mise à jour de votre commande ${payload.orderPublicId}`;
+
+    if (this.configService.get<string>('RESEND_API_KEY')?.trim()) {
+      try {
+        await sendEmailViaResend(this.configService, {
+          to: payload.to,
+          subject,
+          html,
+          fallbackSmtpFrom: from,
+        });
+        return;
+      } catch (error) {
+        this.logger.error(
+          `Failed to send artisan order progress email (Resend): ${formatResendError(error)}`,
+        );
+        throw new InternalServerErrorException({
+          code: 'EMAIL_SEND_FAILED',
+          message: "Impossible d'envoyer l'email de suivi de commande.",
+        });
+      }
+    }
+
+    const transporter = this.getTransporter();
     try {
       await transporter.sendMail({
         from,
         to: payload.to,
-        subject: `Mise à jour de votre commande ${payload.orderPublicId}`,
+        subject,
         html,
       });
     } catch (error) {

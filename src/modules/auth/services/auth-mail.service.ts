@@ -6,6 +6,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Transporter } from 'nodemailer';
 import {
+  formatResendError,
+  sendEmailViaResend,
+} from '../../../common/mail/resend-mail.util';
+import {
   createConfiguredSmtpTransport,
   formatSmtpSendError,
   resolveSmtpMailFrom,
@@ -24,17 +28,38 @@ export class AuthMailService {
     verificationLink: string;
   }): Promise<void> {
     const from = resolveSmtpMailFrom(this.configService);
-    const transporter = this.getTransporter();
     const html = this.buildTemplate(
       payload.displayName,
       payload.verificationLink,
     );
+    const subject = 'Bienvenue chez Sendiaba — Validez votre inscription';
 
+    if (this.configService.get<string>('RESEND_API_KEY')?.trim()) {
+      try {
+        await sendEmailViaResend(this.configService, {
+          to: payload.to,
+          subject,
+          html,
+          fallbackSmtpFrom: from,
+        });
+        return;
+      } catch (error) {
+        this.logger.error(
+          `Failed to send welcome validation email (Resend): ${formatResendError(error)}`,
+        );
+        throw new InternalServerErrorException({
+          code: 'EMAIL_SEND_FAILED',
+          message: "Impossible d'envoyer l'email de validation.",
+        });
+      }
+    }
+
+    const transporter = this.getTransporter();
     try {
       await transporter.sendMail({
         from,
         to: payload.to,
-        subject: 'Bienvenue chez Sendiaba — Validez votre inscription',
+        subject,
         html,
       });
     } catch (error) {
